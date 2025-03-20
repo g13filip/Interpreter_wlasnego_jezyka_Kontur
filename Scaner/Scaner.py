@@ -101,13 +101,15 @@ def check_token_sequence(tokens):
         )
 
 
+#funckja sprawdzająca poprawność nawiasowania
+
 def is_correct_bracketing(tokens):
     stack = []
     for token in tokens:
         if token.value == '(':
-            stack.append(token)  # Dodaj otwierający nawias do stosu
+            stack.append(token)
         elif token.value == ')':
-            if not stack:  # Brak otwierającego nawiasu dla tego zamykającego
+            if not stack:
                 return token.start_indx
             stack.pop()
 
