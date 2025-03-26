@@ -1,17 +1,18 @@
+from Errors import InvalidCharacter
 from Tokens import Token
 
-class InvalidCharacter(Exception):
-    pass
+KEYWORDS = ["break", "if", "else", "for", "do", "while", "return","struct","class", "public", "private","print","def"]
+CHARS = [";", ":", ","," ", "\t", "\n", "\""]
+OPERATORS = ["=", "!", "+", "-", "*", "/", "<", ">"]
+PARENTHESIS = ["(", ")", "[", "]", "{", "}"]
+TYPES = ["void", "string","int","double", "float", "bool", "char"]
+DIGITS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+
 
 def scan(text, indx):
     token_type = None
     temp = indx + 1
     char = text[indx]
-
-    # Pomijanie białych znaków
-    while char in [' ', '\t'] and temp < len(text):
-        temp += 1
-        char = text[temp]
 
     # Obsługa liczb (całkowitych i zmiennoprzecinkowych)
     if '0' <= char <= '9':
@@ -36,85 +37,22 @@ def scan(text, indx):
             temp += 1
             char = text[temp] if temp < len(text) else ''
 
+        if text[indx:temp] in KEYWORDS:
+            token_type = 'Type_Keyword'
+        if text[indx:temp] in TYPES:
+            token_type = 'Type_Type'
+
     # Obsługa operatorów matematycznych
-    elif char in ['+', '-', '/', '*', '=']:
+    elif char in OPERATORS:
         token_type = 'Type_Operator'
 
     # Obsługa nawiasów
-    elif char in ['(', ')']:
+    elif char in PARENTHESIS:
         token_type = 'Type_Parenthesis'
 
+    elif char in CHARS:
+        token_type = 'Type_Special'
     else:
         raise InvalidCharacter(f"Invalid character {char} at column {temp}")
 
-    # Zwrócenie tokenu, uwzględniając indeksy
-    if temp < len(text) and text[temp] in [' ', '\t']:
-        return Token(token_type, text[indx:temp], indx), temp + 1
-    else:
-        return Token(token_type, text[indx:temp], indx), temp
-
-
-# Funkcja sprawdzająca poprawność kolejności podawanych tokenów
-
-def check_token_sequence(tokens):
-
-    if tokens[0].type == 'Type_Operator' or tokens[0].value == ')':
-        raise(
-            f"Invalid character on column: {tokens[0].start_indx}"
-        )
-    previous_token = None
-
-    for i,token in enumerate(tokens):
-        n = len(tokens)
-    # po identyfikatorze lub liczbie może być tylko operator lub ')'
-        if (token.type == 'Type_Number' or token.type == 'Type_Identifier') and n - 1 > i:
-            if tokens[i + 1].type != 'Type_Operator' and tokens[i + 1].value != ')':
-                raise InvalidCharacter(
-                    f"Invalid character on column: {tokens[i+1].start_indx}")
-
-        elif previous_token and previous_token.type == 'Type_Operator':
-            if token.type != 'Type_Number' and token.value != '(' and token.type != 'Type_Identifier':
-                raise InvalidCharacter(
-                    f"Invalid character on column: {token.start_indx}")
-
-        elif previous_token and previous_token.value == '(':
-            if token.type == 'Type_Operator' or token.value == ')':
-                raise InvalidCharacter(
-                    f"Invalid character on column: {token.start_indx}")
-
-        elif previous_token and previous_token.value == ')':
-            if token.type != 'Type_Operator':
-                raise InvalidCharacter(
-                    f"Invalid character on column: {token.start_indx}")
-
-        previous_token = token
-
-    if previous_token.type == 'Type_Operator':
-        raise InvalidCharacter(
-            f"Invalid character on column: {previous_token.start_indx}")
-
-
-    temp = is_correct_bracketing(tokens)
-    if temp != -1:
-        raise InvalidCharacter(
-            f"Invalid character on column: {temp}"
-        )
-
-
-#funckja sprawdzająca poprawność nawiasowania
-
-def is_correct_bracketing(tokens):
-    stack = []
-    for token in tokens:
-        if token.value == '(':
-            stack.append(token)
-        elif token.value == ')':
-            if not stack:
-                return token.start_indx
-            stack.pop()
-
-    if len(stack) == 0:
-        return -1
-    else:
-        return stack[-1].start_indx
-
+    return Token(token_type, text[indx:temp], indx), temp

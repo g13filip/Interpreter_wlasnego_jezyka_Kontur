@@ -1,23 +1,20 @@
-from Scaner import scan, check_token_sequence, is_correct_bracketing
-from Tokens import Token
+from Kolorowanie import tokens_to_html
+from Scaner import scan
 
-
-text = "2+3*(76+8/3)+ 3*(9-3)"
-i = 0
 tokens = []
-while i < len(text):
-    try:
-        token , i = scan(text,i)
-        tokens.append(token)
-    except Exception as e:
-        print(e)
-        exit(8)
+file = open("Polecenia.txt", "r")
 
-try:
-    check_token_sequence(tokens)
-except Exception as e:
-    print(e)
-    exit(9)
+for line in file:
+    i = 0
+    text = line
+    temp = []
+    while i < len(text):
+        try:
+            token , i = scan(text,i)
+            temp.append(token)
+        except Exception as e:
+            print(e)
+            exit(8)
+    tokens.append(temp)
 
-for i in tokens:
-    print(i)
+tokens_to_html(tokens)

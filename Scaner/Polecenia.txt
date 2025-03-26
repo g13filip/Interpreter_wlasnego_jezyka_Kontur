@@ -1,0 +1,9 @@
+int  x  =  13;
+for(int i = 0, i < 5; i++){
+print("tralalala");
+string b = c;
+}
+
+def void(xx, ie, oko){
+print("Niezla Robota");
+}
