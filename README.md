@@ -236,6 +236,8 @@ plotDecl: PLOT_INSTR LEFT_PAREN IDENTIFIER RIGHT_PAREN SEMICOLON;
 | `Python 3.10+`           | Interpreter                     |
 | `antlr4-python3-runtime` | Wykonanie parsera w Pythonie    |
 
+---
+
 ## Przykładowy kod źródłowy w języku Kontur
 
 ```kontur
