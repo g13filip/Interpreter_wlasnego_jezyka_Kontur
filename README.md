@@ -59,8 +59,6 @@ Interpreter języka **Kontur**, który:
 | `TRUE_VALUE`   | wartość logiczna `true`       | `true`       |
 | `FALSE_VALUE`  | wartość logiczna `false`      | `false`      |
 
----
-
 ### Operatory matematyczne i logiczne
 
 | Token           | Opis                            | Przykład |
@@ -85,7 +83,6 @@ Interpreter języka **Kontur**, który:
 | `OR`            | operator logiczny "lub"         | `\|\|`     |
 | `NOT`           | operator logiczny "nie"         | `!`      |
 
----
 
 ### Znaki specjalne i separatory
 
@@ -100,7 +97,6 @@ Interpreter języka **Kontur**, który:
 | `SEMICOLON`     | średnik                         | `;`      |
 | `COMMA`         | przecinek                       | `,`      |
 
----
 
 ### Słowa kluczowe
 
@@ -118,7 +114,6 @@ Interpreter języka **Kontur**, który:
 | `DISPLAY_INSTR`   | funkcja wypisująca dane      | `display`   |
 | `PLOT_INSTR`      | funkcja rysująca wykres      | `plot`      |
 
----
 
 ### Inne tokeny
 
