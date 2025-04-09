@@ -241,60 +241,52 @@ plotDecl: PLOT_INSTR LEFT_PAREN IDENTIFIER RIGHT_PAREN SEMICOLON;
 ## Przykładowy kod źródłowy w języku Kontur
 
 ```kontur
-// Deklaracje zmiennych różnych typów
+matrix B = A';
+matrix C = A * B;
+if (C[1,1] > 10)
+{
+	display("Wynik wiekszy niz 10");
+}
+else{
+	display("Wynik mniejszy lub rowny 10");
+}
+
 int a = 5;
 float pi = 3.14159;
 string imie = "Kasia";
 bool flaga = true;
 matrix M = [1, 2; 3, 4];
 matrix N = [4, 3; 2, 1];
-
-// Operacje na macierzach
 matrix suma = M + N;
 matrix roznica = M - N;
 matrix iloczyn = M * N;
 matrix transpozycja = M';
 matrix odwrotna = ~M;
 
-// Indeksowanie macierzy
-float element = M(1, 0);  // 2. wiersz, 1. kolumna
+float element = M[1, 0];
 
-// Operacje arytmetyczne i logiczne
 int wynik = a + 2 * 3;
 bool warunek = (wynik > 10) && !flaga;
 
-// Operacje na stringach i funkcje trygonometryczne
 string powitanie = "Witaj, " + imie + "!";
 float sinus = sin(pi / 2);
 float cosinus = cos(0);
 
-// Wyświetlanie wartości i wykresy
 display(powitanie);
 display("sin(pi/2) = " + sinus);
 display("cos(0) = " + cosinus);
 plot(M);
 
-// Pętla for
+
 for (int i = 0; i < 3; i = i + 1) {
     display("Licznik: " + i);
 }
 
-// Pętla while
 while (a > 0) {
     display("a = " + a);
     a = a - 1;
 }
 
-// Warunek if / elif / else
-if (wynik > 20) {
-    display("Wynik większy niż 20");
-} elif (wynik == 20) {
-    display("Wynik równy 20");
-} else {
-    display("Wynik mniejszy niż 20");
-}
-
-// Funkcja użytkownika
 func int dodaj(int x, int y) {
     return x + y;
 }
@@ -302,7 +294,6 @@ func int dodaj(int x, int y) {
 int sumaWart = dodaj(10, 5);
 display("Suma: " + sumaWart);
 
-// Funkcja przyjmująca macierz
 func wyswietlMacierz(matrix X) {
     display("Otrzymana macierz:");
     plot(X);

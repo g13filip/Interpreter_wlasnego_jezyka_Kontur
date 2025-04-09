@@ -3,7 +3,7 @@ grammar Kontur;
 program: statement* EOF;
 
 statement:
-    LEFT_BRACE statement* RIGHT_BRACE
+    block
   | assignment
   | expression
   | funcDecl
@@ -13,9 +13,25 @@ statement:
   | displayDecl
   | ifStatement;
 
-assignment: typeName IDENTIFIER ASSIGN expression SEMICOLON;
+block: LEFT_BRACE statement* RIGHT_BRACE;
 
-expression: numExpression | matrixExpression | stringExpression | boolExpression | funcExpression;
+assignment: typeName? IDENTIFIER ASSIGN expression SEMICOLON;
+
+expression:   numExpression
+            | matrixExpression
+            | stringExpression
+            | boolExpression
+            | funcCall
+            | indexedVar
+            | IDENTIFIER
+            | NUMBER
+            | STRING
+            | TRUE_VALUE
+            | FALSE_VALUE;
+
+indexedVar: IDENTIFIER LEFT_BRACKET indexList RIGHT_BRACKET;
+
+indexList: expression (COMMA expression)*;
 
 matrixExpression: (INVERT_MATRIX)? matrixAtom (TRANSPOSITION)?;
 matrixAtom: IDENTIFIER | matrixConstruction;
@@ -26,40 +42,45 @@ value: NUMBER | IDENTIFIER | matrixExpression;
 
 stringExpression: (STRING | IDENTIFIER) ( PLUS (STRING | IDENTIFIER))*;
 
-funcExpression: IDENTIFIER LEFT_PAREN (IDENTIFIER)? ((COMMA IDENTIFIER)*)? RIGHT_PAREN SEMICOLON;
+funcCall: IDENTIFIER LEFT_PAREN IDENTIFIER (COMMA IDENTIFIER)* RIGHT_PAREN SEMICOLON;
 
-boolExpression: numExpression operator=('==' | '!=' | '<' | '>' | '<=' | '>=') numExpression
+boolExpression: numExpression comparisonOperator numExpression
                |    stringExpression operator=('=='| '!=') stringExpression
+               |    matrixExpression operator=('==' | '!=') matrixExpression
                |    boolExpression operator=('&&' | '||')  boolExpression
                |    TRUE_VALUE
                |    FALSE_VALUE;
 
+comparisonOperator:   EQUAL
+                    | NOT_EQUAL
+                    | LESS_THAN
+                    | GREATER_THAN
+                    | LESS_EQUAL
+                    | GREATER_EQUAL
+                    ;
 
-funcDecl: typeName FUNC_INSTR IDENTIFIER LEFT_PAREN parameters? RIGHT_PAREN statement;
+
+funcDecl: typeName FUNC_INSTR IDENTIFIER LEFT_PAREN parameters RIGHT_PAREN statement;
 
 parameters: typeName IDENTIFIER (COMMA typeName IDENTIFIER)*;
 
-returnDecl: RETURN_INSTR (IDENTIFIER | expression) SEMICOLON;
+returnDecl: RETURN_INSTR (expression)? SEMICOLON;
 
-numExpression: numExpression ('+'|'-') term | term;
+numExpression: numExpression (PLUS|MINUS) term | term;
 
-term: term ('*'|'/') factor
+term: term (MULTIPLY|DIVIDE|MODULO) factor
     | factor;
 
 factor: NUMBER
       | IDENTIFIER
-      | '(' numExpression ')';
+      | funcCall
+      | indexedVar
+      | LEFT_PAREN numExpression RIGHT_PAREN;
+
 typeName: TYPE_STRING | TYPE_INT | TYPE_FLOAT | TYPE_BOOL | TYPE_MATRIX;
 
-NUMBER: [0-9]+('.'[0-9]+)?;
-STRING
-    : '"' (ESC | ~["\\\r\n])* '"'
-    | '\'' (ESC | ~['\\\r\n])* '\'';
-fragment ESC
-    : '\\' ["\\/bfnrt];
 
-
-ifStatement: IF_INSTR LEFT_PAREN boolExpression RIGHT_PAREN statement;
+ifStatement: IF_INSTR LEFT_PAREN boolExpression RIGHT_PAREN statement (ELSE_INSTR statement)?;
 
 loopStatement: forLoop | whileLoop;
 
@@ -70,7 +91,7 @@ forLoop: FOR_INSTR LEFT_PAREN (IDENTIFIER | assignment)? SEMICOLON
 whileLoop:
            WHILE_INSTR LEFT_PAREN boolExpression RIGHT_PAREN statement;
 
-displayDecl: DISPLAY_INSTR LEFT_PAREN STATEMENT RIGHT_PAREN SEMICOLON;
+displayDecl: DISPLAY_INSTR LEFT_PAREN statement RIGHT_PAREN SEMICOLON;
 
 plotDecl: PLOT_INSTR LEFT_PAREN IDENTIFIER RIGHT_PAREN SEMICOLON;
 
@@ -90,8 +111,8 @@ MINUS           : '-';
 MULTIPLY        : '*';
 DIVIDE          : '/';
 MODULO          : '%';
-TRANSPOSITION   : '‘';
-INVERT_MATRIX   : '!';
+TRANSPOSITION   : '\'';
+INVERT_MATRIX   : '~';
 INCREMENT       : '++';
 DECREMENT       : '--';
 
@@ -104,6 +125,7 @@ GREATER_THAN    : '>';
 GREATER_EQUAL   : '>=';
 OR              : '||';
 AND             : '&&';
+NOT             : '!';
 
 // -------------- Special Characters -------------
 LEFT_PAREN      : '(';
@@ -114,7 +136,6 @@ LEFT_BRACE      : '{';
 RIGHT_BRACE     : '}';
 SEMICOLON       : ';';
 COMMA           : ',';
-IDENTIFIER      : [a-zA-Z_][a-zA-Z0-9_]*;
 
 // ------------- Language Keyword --------------
 IF_INSTR        : 'if';
@@ -130,5 +151,13 @@ INPUT_INSTR     : 'input';
 RETURN_INSTR    : 'return';
 PLOT_INSTR      : 'plot';
 
+
 COMMENT  : '//' ~[\r\n]* -> skip;
 WHITE_SPACE: [ \t\r\n]+ -> skip;
+NUMBER: [0-9]+('.'[0-9]+)?;
+STRING
+    : '"' (ESC | ~["\\\r\n])* '"'
+    | '\'' (ESC | ~['\\\r\n])* '\'';
+fragment ESC
+    : '\\' ["\\/bfnrt];
+IDENTIFIER      : [a-zA-Z_][a-zA-Z0-9_]*;

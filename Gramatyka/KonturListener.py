@@ -26,6 +26,15 @@ class KonturListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by KonturParser#block.
+    def enterBlock(self, ctx:KonturParser.BlockContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#block.
+    def exitBlock(self, ctx:KonturParser.BlockContext):
+        pass
+
+
     # Enter a parse tree produced by KonturParser#assignment.
     def enterAssignment(self, ctx:KonturParser.AssignmentContext):
         pass
@@ -41,6 +50,24 @@ class KonturListener(ParseTreeListener):
 
     # Exit a parse tree produced by KonturParser#expression.
     def exitExpression(self, ctx:KonturParser.ExpressionContext):
+        pass
+
+
+    # Enter a parse tree produced by KonturParser#indexedVar.
+    def enterIndexedVar(self, ctx:KonturParser.IndexedVarContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#indexedVar.
+    def exitIndexedVar(self, ctx:KonturParser.IndexedVarContext):
+        pass
+
+
+    # Enter a parse tree produced by KonturParser#indexList.
+    def enterIndexList(self, ctx:KonturParser.IndexListContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#indexList.
+    def exitIndexList(self, ctx:KonturParser.IndexListContext):
         pass
 
 
@@ -98,12 +125,12 @@ class KonturListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by KonturParser#funcExpression.
-    def enterFuncExpression(self, ctx:KonturParser.FuncExpressionContext):
+    # Enter a parse tree produced by KonturParser#funcCall.
+    def enterFuncCall(self, ctx:KonturParser.FuncCallContext):
         pass
 
-    # Exit a parse tree produced by KonturParser#funcExpression.
-    def exitFuncExpression(self, ctx:KonturParser.FuncExpressionContext):
+    # Exit a parse tree produced by KonturParser#funcCall.
+    def exitFuncCall(self, ctx:KonturParser.FuncCallContext):
         pass
 
 
@@ -113,6 +140,15 @@ class KonturListener(ParseTreeListener):
 
     # Exit a parse tree produced by KonturParser#boolExpression.
     def exitBoolExpression(self, ctx:KonturParser.BoolExpressionContext):
+        pass
+
+
+    # Enter a parse tree produced by KonturParser#comparisonOperator.
+    def enterComparisonOperator(self, ctx:KonturParser.ComparisonOperatorContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#comparisonOperator.
+    def exitComparisonOperator(self, ctx:KonturParser.ComparisonOperatorContext):
         pass
 
 
