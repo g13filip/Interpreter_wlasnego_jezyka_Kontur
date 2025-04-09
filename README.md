@@ -126,6 +126,105 @@ Interpreter języka **Kontur**, który:
 ---
 
 ## Gramatyka
+```antlr
+grammar Kontur;
+
+program: statement* EOF;
+
+statement:
+    block
+  | assignment
+  | expression
+  | funcDecl
+  | plotDecl
+  | returnDecl
+  | loopStatement
+  | displayDecl
+  | ifStatement;
+
+block: LEFT_BRACE statement* RIGHT_BRACE;
+
+assignment: typeName? IDENTIFIER ASSIGN expression SEMICOLON;
+
+expression:   numExpression
+            | matrixExpression
+            | stringExpression
+            | boolExpression
+            | funcCall
+            | indexedVar
+            | IDENTIFIER
+            | NUMBER
+            | STRING
+            | TRUE_VALUE
+            | FALSE_VALUE;
+
+indexedVar: IDENTIFIER LEFT_BRACKET indexList RIGHT_BRACKET;
+
+indexList: expression (COMMA expression)*;
+
+matrixExpression: (INVERT_MATRIX)? matrixAtom (TRANSPOSITION)?;
+matrixAtom: IDENTIFIER | matrixConstruction;
+
+matrixConstruction: LEFT_BRACKET row (SEMICOLON row)* RIGHT_BRACKET;
+row: value (COMMA value)*;
+value: NUMBER | IDENTIFIER | matrixExpression;
+
+stringExpression: (STRING | IDENTIFIER) ( PLUS (STRING | IDENTIFIER))*;
+
+funcCall: IDENTIFIER LEFT_PAREN IDENTIFIER (COMMA IDENTIFIER)* RIGHT_PAREN SEMICOLON;
+
+boolExpression: numExpression comparisonOperator numExpression
+               |    stringExpression operator=('=='| '!=') stringExpression
+               |    matrixExpression operator=('==' | '!=') matrixExpression
+               |    boolExpression operator=('&&' | '||')  boolExpression
+               |    TRUE_VALUE
+               |    FALSE_VALUE;
+
+comparisonOperator:   EQUAL
+                    | NOT_EQUAL
+                    | LESS_THAN
+                    | GREATER_THAN
+                    | LESS_EQUAL
+                    | GREATER_EQUAL
+                    ;
+
+
+funcDecl: typeName FUNC_INSTR IDENTIFIER LEFT_PAREN parameters RIGHT_PAREN statement;
+
+parameters: typeName IDENTIFIER (COMMA typeName IDENTIFIER)*;
+
+returnDecl: RETURN_INSTR (expression)? SEMICOLON;
+
+numExpression: numExpression (PLUS|MINUS) term | term;
+
+term: term (MULTIPLY|DIVIDE|MODULO) factor
+    | factor;
+
+factor: NUMBER
+      | IDENTIFIER
+      | funcCall
+      | indexedVar
+      | LEFT_PAREN numExpression RIGHT_PAREN;
+
+typeName: TYPE_STRING | TYPE_INT | TYPE_FLOAT | TYPE_BOOL | TYPE_MATRIX;
+
+
+ifStatement: IF_INSTR LEFT_PAREN boolExpression RIGHT_PAREN statement (ELSE_INSTR statement)?;
+
+loopStatement: forLoop | whileLoop;
+
+forLoop: FOR_INSTR LEFT_PAREN (IDENTIFIER | assignment)? SEMICOLON
+                               boolExpression SEMICOLON
+                               statement RIGHT_PAREN
+                               statement;
+whileLoop:
+           WHILE_INSTR LEFT_PAREN boolExpression RIGHT_PAREN statement;
+
+displayDecl: DISPLAY_INSTR LEFT_PAREN statement RIGHT_PAREN SEMICOLON;
+
+plotDecl: PLOT_INSTR LEFT_PAREN IDENTIFIER RIGHT_PAREN SEMICOLON;
+```
+
 
 ---
 
@@ -137,7 +236,7 @@ Interpreter języka **Kontur**, który:
 | `Python 3.10+`           | Interpreter                     |
 | `antlr4-python3-runtime` | Wykonanie parsera w Pythonie    |
 
-## 💡 Przykładowy kod źródłowy w języku Kontur
+## Przykładowy kod źródłowy w języku Kontur
 
 ```kontur
 // Deklaracje zmiennych różnych typów
