@@ -12,8 +12,8 @@ int a = 5;
 float pi = 3.14159;
 string imie = "Kasia";
 bool flaga = true;
-matrix M = [1, 2; 3, 4];
-matrix N = [4, 3; 2, 1];
+matrix M = {1, 2; 3, 4};
+matrix N = {4, 3; 2, 1};
 matrix suma = M + N;
 matrix roznica = M - N;
 matrix iloczyn = M * N;
@@ -32,16 +32,20 @@ float cosinus = cos(0);
 display(powitanie);
 display("sin(pi/2) = " + sinus);
 display("cos(0) = " + cosinus);
-plot(M);
+plot({1, 2; 3, 4},dodaj);
 
 
 for (int i = 0; i < 3; i = i + 1) {
     display("Licznik: " + i);
+    break;
 }
 
 while (a > 0) {
     display("a = " + a);
     a = a - 1;
+    if ( true1 == false2) {
+        break;
+    }
 }
 
 func int dodaj(int x, int y) {
@@ -51,9 +55,9 @@ func int dodaj(int x, int y) {
 int sumaWart = dodaj(10, 5);
 display("Suma: " + sumaWart);
 
-func wyswietlMacierz(matrix X) {
+func void wyswietlMacierz(matrix X) {
     display("Otrzymana macierz:");
-    plot(X);
+    plot({1, 2; 3, 4},X);
 }
 
-wyswietlMacierz(N);
+wyswietlMacierz({1, 2; 3, 4});

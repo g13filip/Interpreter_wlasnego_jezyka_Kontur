@@ -26,6 +26,15 @@ class KonturListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by KonturParser#loopStatements.
+    def enterLoopStatements(self, ctx:KonturParser.LoopStatementsContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#loopStatements.
+    def exitLoopStatements(self, ctx:KonturParser.LoopStatementsContext):
+        pass
+
+
     # Enter a parse tree produced by KonturParser#block.
     def enterBlock(self, ctx:KonturParser.BlockContext):
         pass
@@ -134,6 +143,15 @@ class KonturListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by KonturParser#builtInFunctions.
+    def enterBuiltInFunctions(self, ctx:KonturParser.BuiltInFunctionsContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#builtInFunctions.
+    def exitBuiltInFunctions(self, ctx:KonturParser.BuiltInFunctionsContext):
+        pass
+
+
     # Enter a parse tree produced by KonturParser#boolExpression.
     def enterBoolExpression(self, ctx:KonturParser.BoolExpressionContext):
         pass
@@ -215,12 +233,39 @@ class KonturListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by KonturParser#operation.
+    def enterOperation(self, ctx:KonturParser.OperationContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#operation.
+    def exitOperation(self, ctx:KonturParser.OperationContext):
+        pass
+
+
+    # Enter a parse tree produced by KonturParser#reassignment.
+    def enterReassignment(self, ctx:KonturParser.ReassignmentContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#reassignment.
+    def exitReassignment(self, ctx:KonturParser.ReassignmentContext):
+        pass
+
+
     # Enter a parse tree produced by KonturParser#ifStatement.
     def enterIfStatement(self, ctx:KonturParser.IfStatementContext):
         pass
 
     # Exit a parse tree produced by KonturParser#ifStatement.
     def exitIfStatement(self, ctx:KonturParser.IfStatementContext):
+        pass
+
+
+    # Enter a parse tree produced by KonturParser#loopIfStatement.
+    def enterLoopIfStatement(self, ctx:KonturParser.LoopIfStatementContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#loopIfStatement.
+    def exitLoopIfStatement(self, ctx:KonturParser.LoopIfStatementContext):
         pass
 
 
