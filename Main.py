@@ -1,7 +1,7 @@
 from antlr4.CommonTokenStream import CommonTokenStream
 from antlr4.FileStream import FileStream
 from antlr4.InputStream import InputStream
-from antlr4.tree.Tree import TerminalNodeImpl
+from antlr4.tree.Tree import TerminalNodeImpl, ParseTreeWalker
 import streamlit as st
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,6 +9,7 @@ import numpy as np
 from Gramatyka.KonturErrorListener import KonturErrorListener
 from Gramatyka.KonturLexer import KonturLexer
 from Gramatyka.KonturParser import KonturParser
+from Gramatyka.EvalListener import EvalListener
 
 # def print_tree(node, parser, indent=0):
 #     prefix = "  " * indent
@@ -63,8 +64,12 @@ def parse_kontur_file(input_text):
 
     tree = parser.program()
     tree_text = print_tree(tree, parser)
+    walker = ParseTreeWalker()
+    listener = EvalListener()
 
-    return tree, tree_text, error_listener.errors
+    walker.walk(listener, tree)
+
+    return tree, tree_text, error_listener.errors, listener
 
 if __name__ == "__main__":
 
@@ -77,7 +82,7 @@ if __name__ == "__main__":
             st.warning("Proszę wprowadzić wyrażenie")
         else:
             try:
-                tree, tree_text, errors = parse_kontur_file(expression)
+                tree, tree_text, errors, listener = parse_kontur_file(expression)
 
                 if errors:
                     st.subheader("Błędy:")
@@ -85,6 +90,8 @@ if __name__ == "__main__":
                         st.error(error)
                 else:
                     st.subheader("Wynik \\ Drzewo składniowe:")
+                    output = "\n".join(listener.output)
+                    st.code(output, language='text')
                     st.code(tree_text, language='text')
 
             except Exception as e:
