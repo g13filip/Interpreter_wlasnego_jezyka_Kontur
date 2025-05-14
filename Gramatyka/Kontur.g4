@@ -28,7 +28,7 @@ loopStatements:
 
 block: LEFT_BRACE statement* RIGHT_BRACE;
 
-assignment: typeName? IDENTIFIER ASSIGN expression;
+assignment: typeName? IDENTIFIER (ASSIGN expression)?;
 
 expression:   numExpression
             | matrixExpression
@@ -106,8 +106,11 @@ reassignment: IDENTIFIER ((ADD_TO STRING | ADD_TO numExpression)
 
 
 ifStatement: IF_INSTR LEFT_PAREN boolExpression RIGHT_PAREN (statement | block)
+
              (ELIF_INSTR LEFT_PAREN boolExpression RIGHT_PAREN (statement | block))*
+
              (ELSE_INSTR (statement | block))?;
+
 loopIfStatement: IF_INSTR LEFT_PAREN boolExpression RIGHT_PAREN (LEFT_BRACE loopStatements+ RIGHT_BRACE | statement)
 
              (ELIF_INSTR LEFT_PAREN boolExpression RIGHT_PAREN (LEFT_BRACE loopStatements+ RIGHT_BRACE | statement))*
