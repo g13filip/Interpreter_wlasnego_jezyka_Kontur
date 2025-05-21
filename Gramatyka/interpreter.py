@@ -1,4 +1,7 @@
 import numpy as np
+import plotly.graph_objects as go
+import plotly.express as px
+import math
 
 from .KonturVisitor import KonturVisitor
 from .KonturParser import KonturParser
@@ -13,6 +16,7 @@ class KonturInterpreter(KonturVisitor):
             self.visit(stmt)
 
     def visitAssignment(self, ctx: KonturParser.AssignmentContext):
+        print(ctx.expression().numExpression())
         name = ctx.IDENTIFIER().getText()
         value = self.visit(ctx.expression()) if ctx.expression() else None
         var_type = ctx.typeName().getText() if ctx.typeName() else self._infer_type(value)
@@ -36,7 +40,7 @@ class KonturInterpreter(KonturVisitor):
 
     def visitDisplayDecl(self, ctx: KonturParser.DisplayDeclContext):
         value = self.visit(ctx.expression())
-        self.output_func(value)
+        self.output_func.write(value)
 
     def visitExpression(self, ctx: KonturParser.ExpressionContext):
         if ctx.NUMBER():
@@ -49,12 +53,16 @@ class KonturInterpreter(KonturVisitor):
             return self.variables.get(name, {}).get("value", f"<undef {name}>")
         elif ctx.numExpression():
             return self.visit(ctx.numExpression())
+        elif ctx.boolExpression():
+            return self.visit(ctx.boolExpression())
         elif ctx.stringExpression():
             return self.visit(ctx.stringExpression())
         elif ctx.matrixExpression():
             return self.visit(ctx.matrixExpression())
         elif ctx.indexedVar():
             return self.visit(ctx.indexedVar())
+        elif ctx.funcCall():
+            return self.visit(ctx.funcCall())
         return None
 
     def visitNumExpression(self, ctx: KonturParser.NumExpressionContext):
@@ -171,7 +179,7 @@ class KonturInterpreter(KonturVisitor):
 
             for i in range(n_conditions):
                 condition = self.visit(ctx.boolExpression(i))
-                if bool(condition):  # WYMUSZONA ocena logiczna
+                if bool(condition):
                     if i < n_statements:
                         return self.visit(ctx.statement(i))
                     else:
@@ -262,3 +270,141 @@ class KonturInterpreter(KonturVisitor):
                     self.visit(ctx.reassignment())
                 elif ctx.operation():
                     self.visit(ctx.operation())
+
+    def visitPlotDecl(self, ctx: KonturParser.PlotDeclContext):
+        # Pobierz dane do wykresu
+        try:
+            if ctx.IDENTIFIER(0):
+                var_name = ctx.IDENTIFIER(0).getText()
+                matrix_data = self.variables.get(var_name, {})
+                matrix = matrix_data.get("value")
+                if matrix is None:
+                    self.output_func.write(f"Error: Variable '{var_name}' not found")
+                    return
+            else:
+                matrix = self.visit(ctx.matrixExpression())
+
+            # Pobierz tytuł (jeśli istnieje)
+            title = "Plot"
+            if ctx.IDENTIFIER(1):
+                title_var = ctx.IDENTIFIER(1).getText()
+                title_data = self.variables.get(title_var, {})
+                title = str(title_data.get("value", title_var))
+
+            if not isinstance(matrix, np.ndarray):
+                matrix = np.array(matrix)
+
+            if matrix.ndim == 2 and matrix.shape[0] == 1:
+                matrix = matrix.flatten()
+
+
+            # Generowanie odpowiedniego wykresu
+            if matrix.ndim == 1:
+                x_values = np.arange(1, len(matrix) + 1)  # [1, 2, 3, ...]
+                fig = px.line(x=x_values, y=matrix, title=title,
+                              labels={'x': 'Index', 'y': 'Value'})
+            elif matrix.shape[0] == 2:
+                # Macierz 2xN - pierwszy wiersz to X, drugi to Y
+                fig = px.line(x=matrix[0], y=matrix[1], title=title,
+                              labels={'x': 'X', 'y': 'Y'})
+            elif matrix.shape[0] == 3:
+                # Macierz 3xN - wiersze to X,Y,Z (wykres 3D)
+                fig = go.Figure(data=[go.Scatter3d(
+                    x=matrix[0],
+                    y=matrix[1],
+                    z=matrix[2],
+                    mode='lines+markers',
+                    marker=dict(size=4),
+                    line=dict(width=2)
+                )])
+                fig.update_layout(
+                    title=title,
+                    scene=dict(
+                        xaxis_title='X',
+                        yaxis_title='Y',
+                        zaxis_title='Z'
+                    )
+                )
+            elif matrix.shape[1] == 2:
+                # Macierz Nx2 - kolumny to X,Y
+                fig = px.scatter(x=matrix[:, 0], y=matrix[:, 1], title=title)
+            elif matrix.shape[1] == 3:
+                # Macierz Nx3 - kolumny to X,Y,Z (wykres 3D)
+                fig = px.scatter_3d(
+                    x=matrix[:, 0],
+                    y=matrix[:, 1],
+                    z=matrix[:, 2],
+                    title=title
+                )
+            else:
+                self.output_func.write("Error: Unsupported matrix format. Expected: "
+                                       "1D vector, 2xN, 3xN, Nx2 or Nx3 matrix")
+                return
+
+            # Renderowanie wykresu
+            if hasattr(self.output_func, 'plotly_chart'):
+                self.output_func.plotly_chart(fig)
+            else:
+                self.output_func.write(fig.to_html(include_plotlyjs='cdn'))
+
+        except Exception as e:
+            self.output_func.write(f"Plot error: {str(e)}")
+
+    def visitFuncCall(self, ctx:KonturParser.FuncCallContext):
+        if ctx.builtInFunctions():
+            return self.visit(ctx.builtInFunctions())
+
+    def visitBuiltInFunctions(self, ctx: KonturParser.BuiltInFunctionsContext):
+        try:
+            if ctx.POWER_FUNC():
+                # Obsługa funkcji potęgującej pow(x,y)
+                base = self.visit(ctx.numExpression(0))
+                exponent = self.visit(ctx.numExpression(1))
+
+                if not isinstance(base, (int, float)) or not isinstance(exponent, (int, float)):
+                    raise TypeError("Function 'pow' expects numeric arguments")
+
+                result = base ** exponent
+                # Zwróć int jeśli wynik jest całkowity
+                return int(result) if isinstance(result, float) and result.is_integer() else result
+
+            elif ctx.SIN_FUNC() or ctx.COS_FUNC() or ctx.TAN_FUNC() or ctx.CTAN_FUNC():
+                # Obsługa funkcji trygonometrycznych
+                angle = self.visit(ctx.numExpression(0))
+
+                if not isinstance(angle, (int, float)):
+                    raise TypeError("Trigonometric functions expect numeric argument")
+
+                angle_rad = math.radians(angle)  # Konwersja stopni na radiany
+                func_type = ctx.getChild(0).getText().lower()
+
+                if ctx.SIN_FUNC():
+                    result = math.sin(angle_rad)
+                elif ctx.COS_FUNC():
+                    result = math.cos(angle_rad)
+                elif ctx.TAN_FUNC():
+                    result = math.tan(angle_rad)
+                elif ctx.CTAN_FUNC():
+                    tan_val = math.tan(angle_rad)
+                    if abs(tan_val) < 1e-10:
+                        raise ValueError("Cotangent is undefined for this angle")
+                    result = 1 / tan_val
+
+                # Zaokrąglenie wyników bliskich 0, 1 lub -1
+                if abs(result) < 1e-10:
+                    return 0
+                elif abs(result - 1) < 1e-10:
+                    return 1
+                elif abs(result + 1) < 1e-10:
+                    return -1
+                return result
+
+        except ValueError as ve:
+            self.output_func.write(f"Math error: {str(ve)}")
+            raise
+        except TypeError as te:
+            self.output_func.write(f"Type error: {str(te)}")
+            raise
+        except Exception as e:
+            self.output_func.write(f"Error in built-in function: {str(e)}")
+            raise

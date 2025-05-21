@@ -38,10 +38,10 @@ if st.button("Uruchom kod"):
                 st.error(error)
         else:
             st.subheader("Wynik programu:")
-            interpreter = KonturInterpreter(output_func=st.write)
+            interpreter = KonturInterpreter(output_func=st)
             interpreter.visit(tree)
 
-
+            print(interpreter.variables)
 
     except Exception as e:
         st.error(f"Błąd: {e}")
