@@ -1,26 +1,34 @@
+import streamlit as st
 from antlr4 import *
 from Gramatyka.KonturLexer import KonturLexer
 from Gramatyka.KonturParser import KonturParser
 from Gramatyka.interpreter import KonturInterpreter
 
-def main():
-    code = """
-int i = 1;
-if(true){
-    display(i);
-}
-    """
+# Tekstowe pole do wprowadzenia kodu
+st.title("Interpreter języka Kontur")
+code = st.text_area("Wklej kod Kontur:", '''int i = 0;
+while (i < 10) {
+    if (i % 2 == 0) {
+        display(i);
+    }
+    i += 1;
+}''', height=300)
 
-    input_stream = InputStream(code)
-    lexer = KonturLexer(input_stream)
-    tokens = CommonTokenStream(lexer)
-    parser = KonturParser(tokens)
+# Przycisk uruchamiający interpreter
+if st.button("Uruchom kod"):
+    try:
+        # Przetwarzanie kodu źródłowego
+        input_stream = InputStream(code)
+        lexer = KonturLexer(input_stream)
+        token_stream = CommonTokenStream(lexer)
+        parser = KonturParser(token_stream)
+        tree = parser.program()
 
-    tree = parser.program()
-    visitor = KonturInterpreter()
-    visitor.visit(tree)
-    print(visitor.variables)
-    print(tree.toStringTree(recog=parser))
+        st.subheader("Wynik programu:")
 
-if __name__ == "__main__":
-    main()
+        # Tworzymy interpreter z funkcją wyjściową: st.write
+        interpreter = KonturInterpreter(output_func=st.write)
+        interpreter.visit(tree)
+
+    except Exception as e:
+        st.error(f"Błąd: {e}")

@@ -4,8 +4,9 @@ from .KonturVisitor import KonturVisitor
 from .KonturParser import KonturParser
 
 class KonturInterpreter(KonturVisitor):
-    def __init__(self):
+    def __init__(self, output_func):
         self.variables = {}
+        self.output_func = output_func
 
     def visitProgram(self, ctx: KonturParser.ProgramContext):
         for stmt in ctx.statement():
@@ -35,7 +36,7 @@ class KonturInterpreter(KonturVisitor):
 
     def visitDisplayDecl(self, ctx: KonturParser.DisplayDeclContext):
         value = self.visit(ctx.expression())
-        print(value)
+        self.output_func(value)
 
     def visitExpression(self, ctx: KonturParser.ExpressionContext):
         if ctx.NUMBER():
