@@ -47,7 +47,7 @@ class EvalListener(KonturListener):
             op = ctx.getChild(1).getText()
             result = {
                 '+': left + right,
-                '-': left + right,
+                '-': left - right,
             }[op]
             self.stack.append(result)
         elif ctx.getChildCount() == 1:

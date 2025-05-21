@@ -101,8 +101,7 @@ operation : (IDENTIFIER (INCREMENT | DECREMENT)) | funcCall;
 reassignment: IDENTIFIER ((ADD_TO STRING | ADD_TO numExpression)
                           | SUBTRACT_FROM numExpression
                           | DIVIDE_FROM numExpression
-                          | TIMES numExpression)
-               SEMICOLON;
+                          | TIMES numExpression);
 
 
 ifStatement: IF_INSTR LEFT_PAREN boolExpression RIGHT_PAREN (statement | block)
