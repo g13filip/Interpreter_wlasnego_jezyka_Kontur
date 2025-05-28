@@ -35,6 +35,24 @@ class KonturListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by KonturParser#breakStatement.
+    def enterBreakStatement(self, ctx:KonturParser.BreakStatementContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#breakStatement.
+    def exitBreakStatement(self, ctx:KonturParser.BreakStatementContext):
+        pass
+
+
+    # Enter a parse tree produced by KonturParser#continueStatement.
+    def enterContinueStatement(self, ctx:KonturParser.ContinueStatementContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#continueStatement.
+    def exitContinueStatement(self, ctx:KonturParser.ContinueStatementContext):
+        pass
+
+
     # Enter a parse tree produced by KonturParser#block.
     def enterBlock(self, ctx:KonturParser.BlockContext):
         pass
@@ -68,6 +86,15 @@ class KonturListener(ParseTreeListener):
 
     # Exit a parse tree produced by KonturParser#indexedVar.
     def exitIndexedVar(self, ctx:KonturParser.IndexedVarContext):
+        pass
+
+
+    # Enter a parse tree produced by KonturParser#indexedAssignment.
+    def enterIndexedAssignment(self, ctx:KonturParser.IndexedAssignmentContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#indexedAssignment.
+    def exitIndexedAssignment(self, ctx:KonturParser.IndexedAssignmentContext):
         pass
 
 
@@ -179,12 +206,30 @@ class KonturListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by KonturParser#returnType.
+    def enterReturnType(self, ctx:KonturParser.ReturnTypeContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#returnType.
+    def exitReturnType(self, ctx:KonturParser.ReturnTypeContext):
+        pass
+
+
     # Enter a parse tree produced by KonturParser#parameters.
     def enterParameters(self, ctx:KonturParser.ParametersContext):
         pass
 
     # Exit a parse tree produced by KonturParser#parameters.
     def exitParameters(self, ctx:KonturParser.ParametersContext):
+        pass
+
+
+    # Enter a parse tree produced by KonturParser#parameter.
+    def enterParameter(self, ctx:KonturParser.ParameterContext):
+        pass
+
+    # Exit a parse tree produced by KonturParser#parameter.
+    def exitParameter(self, ctx:KonturParser.ParameterContext):
         pass
 
 

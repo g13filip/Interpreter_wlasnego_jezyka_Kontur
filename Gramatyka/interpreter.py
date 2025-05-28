@@ -7,10 +7,14 @@ from antlr4.tree.Tree import TerminalNode
 from .KonturVisitor import KonturVisitor
 from .KonturParser import KonturParser
 
+class BreakException(Exception): pass
+class ContinueException(Exception): pass
+
 class KonturInterpreter(KonturVisitor):
     def __init__(self, output_func):
         self.variables = {}
         self.output_func = output_func
+        self.functions = {}
 
     def visitProgram(self, ctx: KonturParser.ProgramContext):
         for stmt in ctx.statement():
@@ -34,11 +38,20 @@ class KonturInterpreter(KonturVisitor):
         if not explicit_type and name not in self.variables:
             raise NameError(f"Line {line_number}: Variable '{name}' does not exist. ")
 
-        if explicit_type and not isinstance(value, type_mapping.get(explicit_type)):
-            raise TypeError(f"Line {line_number}: Wrong type of value for {explicit_type}.")
-        if not explicit_type and not isinstance(value, type_mapping.get(self.variables[name]["type"])):
-            raise TypeError(f"Line {line_number}: Wrong type of value for {name}.")
+        target_type = type_mapping.get(explicit_type)
 
+        if explicit_type:
+            try:
+                value = self._cast_value(value, explicit_type)
+            except Exception:
+                raise TypeError(f"Line {line_number}: Wrong type of value for {explicit_type}.")
+
+        if not explicit_type:
+            expected_type = self.variables[name]["type"]
+            try:
+                value = self._cast_value(value, expected_type)
+            except Exception:
+                raise TypeError(f"Line {line_number}: Wrong type of value for {name}.")
 
         var_type = explicit_type if explicit_type else self.variables[name]["type"]
         value = self._cast_value(value, var_type)
@@ -217,6 +230,26 @@ class KonturInterpreter(KonturVisitor):
                 return f"Index error in {name}"
         return f"{name} is not a matrix"
 
+    def visitIndexedAssignment(self, ctx):
+        name = ctx.indexedVar().IDENTIFIER().getText()
+        indexes = [self.visit(e) for e in ctx.indexedVar().indexList().expression()]
+        value = self.visit(ctx.expression())
+        line_number = ctx.start.line
+
+        if name not in self.variables:
+            raise NameError(f"Line {line_number}: Matrix '{name}' is not defined")
+
+        matrix = self.variables[name]["value"]
+        if not isinstance(matrix, np.ndarray):
+            raise TypeError(f"Line {line_number}: Variable '{name}' is not a matrix")
+
+        try:
+            matrix[tuple(indexes)] = value
+        except IndexError:
+            raise IndexError(f"Line {line_number}: Index out of bounds for matrix '{name}'")
+        except Exception as e:
+            raise RuntimeError(f"Line {line_number}: Error while assigning to matrix '{name}': {e}")
+
     def visitValue(self, ctx: KonturParser.ValueContext):
         if ctx.NUMBER():
             text = ctx.NUMBER().getText()
@@ -287,21 +320,31 @@ class KonturInterpreter(KonturVisitor):
         return "unknown"
 
     def _cast_value(self, val, typ):
+        if isinstance(val, np.generic):
+            val = val.item()
         if typ == "int": return int(float(val))
         if typ == "float": return float(val)
         if typ == "string": return str(val)
         if typ == "matrix": return np.array(val) if not isinstance(val, np.ndarray) else val
         return val
 
-    def visitWhileLoop(self, ctx: KonturParser.WhileLoopContext):
-
-
+    def visitWhileLoop(self, ctx):
         while self.visit(ctx.boolExpression()):
-            if ctx.statement():
-                self.visit(ctx.loopStatement())
-            else:
-                for stmt in ctx.loopStatements():
-                    self.visit(stmt)
+            try:
+                if ctx.statement():
+                    self.visit(ctx.loopStatement())
+                else:
+                    for stmt in ctx.loopStatements():
+                        try:
+                            self.visit(stmt)
+                        except ContinueException:
+                            raise
+                        except BreakException:
+                            raise
+            except ContinueException:
+                continue
+            except BreakException:
+                break
 
     def visitForLoop(self, ctx: KonturParser.ForLoopContext):
 
@@ -314,7 +357,12 @@ class KonturInterpreter(KonturVisitor):
             else:
                 if ctx.loopStatements():
                     for stmt in ctx.loopStatements():
-                        self.visit(stmt)
+                        try:
+                            self.visit(stmt)
+                        except ContinueException:
+                            raise  # przerywa natychmiast – wraca do pętli
+                        except BreakException:
+                            raise
             if ctx.reassignment():
                 self.visit(ctx.reassignment())
             elif ctx.operation():
@@ -341,9 +389,15 @@ class KonturInterpreter(KonturVisitor):
         #         elif ctx.operation():
         #             self.visit(ctx.operation())
 
+    def visitBreakStatement(self, ctx):
+        raise BreakException()
+
+    def visitContinueStatement(self, ctx):
+        raise ContinueException()
+
     def visitPlotDecl(self, ctx: KonturParser.PlotDeclContext):
-        # Pobierz dane do wykresu
         try:
+            # Argument 1: macierz danych
             if ctx.IDENTIFIER(0):
                 var_name = ctx.IDENTIFIER(0).getText()
                 matrix_data = self.variables.get(var_name, {})
@@ -354,64 +408,42 @@ class KonturInterpreter(KonturVisitor):
             else:
                 matrix = self.visit(ctx.matrixExpression())
 
-            # Pobierz tytuł (jeśli istnieje)
+            # Argument 2: tytuł wykresu
+            title_node = ctx.getChild(4)  # 5. dziecko: IDENTIFIER lub STRING
             title = "Plot"
-            if ctx.IDENTIFIER(1):
-                title_var = ctx.IDENTIFIER(1).getText()
+            if isinstance(title_node, TerminalNode) and title_node.getSymbol().type == KonturParser.STRING:
+                title = title_node.getText().strip('"').strip("'")
+            else:
+                title_var = title_node.getText()
                 title_data = self.variables.get(title_var, {})
                 title = str(title_data.get("value", title_var))
 
             if not isinstance(matrix, np.ndarray):
                 matrix = np.array(matrix)
-
             if matrix.ndim == 2 and matrix.shape[0] == 1:
                 matrix = matrix.flatten()
 
-
-            # Generowanie odpowiedniego wykresu
+            # Generowanie wykresu
             if matrix.ndim == 1:
-                x_values = np.arange(1, len(matrix) + 1)  # [1, 2, 3, ...]
-                fig = px.line(x=x_values, y=matrix, title=title,
-                              labels={'x': 'Index', 'y': 'Value'})
+                x_values = np.arange(1, len(matrix) + 1)
+                fig = px.line(x=x_values, y=matrix, title=title, labels={'x': 'Index', 'y': 'Value'})
             elif matrix.shape[0] == 2:
-                # Macierz 2xN - pierwszy wiersz to X, drugi to Y
-                fig = px.line(x=matrix[0], y=matrix[1], title=title,
-                              labels={'x': 'X', 'y': 'Y'})
+                fig = px.line(x=matrix[0], y=matrix[1], title=title, labels={'x': 'X', 'y': 'Y'})
             elif matrix.shape[0] == 3:
-                # Macierz 3xN - wiersze to X,Y,Z (wykres 3D)
                 fig = go.Figure(data=[go.Scatter3d(
-                    x=matrix[0],
-                    y=matrix[1],
-                    z=matrix[2],
-                    mode='lines+markers',
-                    marker=dict(size=4),
-                    line=dict(width=2)
+                    x=matrix[0], y=matrix[1], z=matrix[2],
+                    mode='lines+markers', marker=dict(size=4), line=dict(width=2)
                 )])
-                fig.update_layout(
-                    title=title,
-                    scene=dict(
-                        xaxis_title='X',
-                        yaxis_title='Y',
-                        zaxis_title='Z'
-                    )
-                )
+                fig.update_layout(title=title, scene=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='Z'))
             elif matrix.shape[1] == 2:
-                # Macierz Nx2 - kolumny to X,Y
                 fig = px.scatter(x=matrix[:, 0], y=matrix[:, 1], title=title)
             elif matrix.shape[1] == 3:
-                # Macierz Nx3 - kolumny to X,Y,Z (wykres 3D)
-                fig = px.scatter_3d(
-                    x=matrix[:, 0],
-                    y=matrix[:, 1],
-                    z=matrix[:, 2],
-                    title=title
-                )
+                fig = px.scatter_3d(x=matrix[:, 0], y=matrix[:, 1], z=matrix[:, 2], title=title)
             else:
-                self.output_func.write("Error: Unsupported matrix format. Expected: "
-                                       "1D vector, 2xN, 3xN, Nx2 or Nx3 matrix")
+                self.output_func.write("Error: Unsupported matrix format. Expected: 1D, 2xN, 3xN, Nx2 or Nx3 matrix")
                 return
 
-            # Renderowanie wykresu
+            # Renderowanie
             if hasattr(self.output_func, 'plotly_chart'):
                 self.output_func.plotly_chart(fig)
             else:
@@ -423,6 +455,8 @@ class KonturInterpreter(KonturVisitor):
     def visitFuncCall(self, ctx:KonturParser.FuncCallContext):
         if ctx.builtInFunctions():
             return self.visit(ctx.builtInFunctions())
+
+
 
     def visitBuiltInFunctions(self, ctx: KonturParser.BuiltInFunctionsContext):
         try:
@@ -437,6 +471,9 @@ class KonturInterpreter(KonturVisitor):
                 result = base ** exponent
                 # Zwróć int jeśli wynik jest całkowity
                 return int(result) if isinstance(result, float) and result.is_integer() else result
+
+
+
 
             elif ctx.SIN_FUNC() or ctx.COS_FUNC() or ctx.TAN_FUNC() or ctx.CTAN_FUNC():
                 # Obsługa funkcji trygonometrycznych
@@ -462,12 +499,91 @@ class KonturInterpreter(KonturVisitor):
 
                 # Zaokrąglenie wyników bliskich 0, 1 lub -1
                 if abs(result) < 1e-10:
-                    return 0
+                    return float(0)
                 elif abs(result - 1) < 1e-10:
-                    return 1
+                    return float(1)
                 elif abs(result + 1) < 1e-10:
-                    return -1
-                return result
+                    return float(-1)
+                return float(result)
+
+
+
+            elif ctx.MATRIX_FROM_LOOP_FUNC():
+
+                exprs = ctx.expression()
+
+                ids = ctx.IDENTIFIER()
+
+                nums = ctx.numExpression()
+
+                expr = exprs[-1]  # Ostatnie to ciało pętli (np. i * j)
+
+                if len(ids) == 1:
+
+                    var1 = ids[0].getText()
+
+                    start1 = self.visit(nums[0])
+
+                    end1 = self.visit(nums[1])
+
+                    result = []
+
+                    for i in range(int(start1), int(end1)):
+                        self.variables[var1] = {"type": "int", "value": i}
+
+                        result.append(self.visit(expr))
+
+                    return np.array([result])
+
+
+                elif len(ids) == 2:
+
+                    var1 = ids[0].getText()
+
+                    start1 = self.visit(nums[0])
+
+                    end1 = self.visit(nums[1])
+
+                    var2 = ids[1].getText()
+
+                    start2 = self.visit(nums[2])
+
+                    end2 = self.visit(nums[3])
+
+                    result = []
+
+                    for i in range(int(start1), int(end1)):
+
+                        self.variables[var1] = {"type": "int", "value": i}
+
+                        row = []
+
+                        for j in range(int(start2), int(end2)):
+                            self.variables[var2] = {"type": "int", "value": j}
+
+                            row.append(self.visit(expr))
+
+                        result.append(row)
+
+                    return np.array(result)
+
+
+            elif ctx.VSTACK_FUNC():
+                a = self.visit(ctx.expression(0))
+                b = self.visit(ctx.expression(1))
+                if not isinstance(a, np.ndarray):
+                    a = np.array(a, dtype=float)
+                if not isinstance(b, np.ndarray):
+                    b = np.array(b, dtype=float)
+                if a.ndim == 1:
+                    a = np.expand_dims(a, axis=0)
+                if b.ndim == 1:
+                    b = np.expand_dims(b, axis=0)
+                try:
+                    result = np.vstack([a, b])
+                    return result
+                except ValueError as e:
+                    raise ValueError(f"Matrix dimension mismatch in vstack: {e}")
 
         except ValueError as ve:
             self.output_func.write(f"Math error: {str(ve)}")
@@ -478,3 +594,20 @@ class KonturInterpreter(KonturVisitor):
         except Exception as e:
             self.output_func.write(f"Error in built-in function: {str(e)}")
             raise
+
+    def visitFuncDecl(self, ctx):
+        name = ctx.IDENTIFIER().getText()
+        return_type = ctx.typeName().getText() if ctx.typeName() else "void"
+        parameters = []
+
+        if ctx.parameters():
+            for i in range(len(ctx.parameters().IDENTIFIER())):
+                param_type = ctx.parameters().typeName(i).getText()
+                param_name = ctx.parameters().IDENTIFIER(i).getText()
+                parameters.append((param_type, param_name))
+
+        self.functions[name] = {
+            "return_type": return_type,
+            "parameters": parameters,
+            "block": ctx.block()
+        }

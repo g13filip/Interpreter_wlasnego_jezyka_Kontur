@@ -24,6 +24,16 @@ class KonturVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by KonturParser#breakStatement.
+    def visitBreakStatement(self, ctx:KonturParser.BreakStatementContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by KonturParser#continueStatement.
+    def visitContinueStatement(self, ctx:KonturParser.ContinueStatementContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by KonturParser#block.
     def visitBlock(self, ctx:KonturParser.BlockContext):
         return self.visitChildren(ctx)
@@ -41,6 +51,11 @@ class KonturVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by KonturParser#indexedVar.
     def visitIndexedVar(self, ctx:KonturParser.IndexedVarContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by KonturParser#indexedAssignment.
+    def visitIndexedAssignment(self, ctx:KonturParser.IndexedAssignmentContext):
         return self.visitChildren(ctx)
 
 
@@ -104,8 +119,18 @@ class KonturVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by KonturParser#returnType.
+    def visitReturnType(self, ctx:KonturParser.ReturnTypeContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by KonturParser#parameters.
     def visitParameters(self, ctx:KonturParser.ParametersContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by KonturParser#parameter.
+    def visitParameter(self, ctx:KonturParser.ParameterContext):
         return self.visitChildren(ctx)
 
 

@@ -5,6 +5,7 @@ program: statement* EOF;
 statement:
     assignment SEMICOLON
   | reassignment SEMICOLON
+  | indexedAssignment SEMICOLON
   | funcDecl
   | plotDecl
   | returnDecl
@@ -23,24 +24,29 @@ loopStatements:
   | loopStatement
   | displayDecl
   | loopIfStatement
-  | BREAK_INSTR SEMICOLON
-  | CONTINUE_INSTR SEMICOLON;
+  | breakStatement
+  | continueStatement;
+
+breakStatement: BREAK_INSTR SEMICOLON;
+continueStatement: CONTINUE_INSTR SEMICOLON;
 
 block: LEFT_BRACE statement* RIGHT_BRACE;
 
 assignment: typeName? IDENTIFIER (ASSIGN expression)?;
 
-expression:   numExpression
-            | matrixExpression
-            | stringExpression
-            | NOT? boolExpression
-            | funcCall
-            | indexedVar
-            | IDENTIFIER
-            | NUMBER
-            | STRING;
+expression: funcCall
+          | numExpression
+          | matrixExpression
+          | stringExpression
+          | NOT? boolExpression
+          | indexedVar
+          | IDENTIFIER
+          | NUMBER
+          | STRING;
 
 indexedVar: IDENTIFIER LEFT_BRACKET indexList RIGHT_BRACKET;
+
+indexedAssignment: indexedVar ASSIGN expression;
 
 indexList: expression (COMMA expression)*;
 
@@ -54,12 +60,18 @@ value: NUMBER | IDENTIFIER | matrixExpression;
 stringExpression: (STRING | IDENTIFIER) ( PLUS (STRING | IDENTIFIER))*;
 
 funcCall: builtInFunctions |
-            IDENTIFIER LEFT_PAREN (IDENTIFIER| expression) (COMMA (IDENTIFIER | expression))* RIGHT_PAREN;
+            IDENTIFIER LEFT_PAREN (expression (COMMA expression)*)? RIGHT_PAREN;
 
 builtInFunctions:POWER_FUNC LEFT_PAREN numExpression COMMA numExpression RIGHT_PAREN
                 |
              (SIN_FUNC | COS_FUNC | TAN_FUNC | CTAN_FUNC )
-              LEFT_PAREN numExpression RIGHT_PAREN;
+              LEFT_PAREN numExpression RIGHT_PAREN
+                |
+              MATRIX_FROM_LOOP_FUNC LEFT_PAREN expression COMMA IDENTIFIER COMMA numExpression COMMA numExpression
+                                  (COMMA IDENTIFIER COMMA numExpression COMMA numExpression)? RIGHT_PAREN
+                |
+              VSTACK_FUNC LEFT_PAREN expression COMMA expression RIGHT_PAREN;
+
 
 boolExpression:  numExpression comparisonOperator numExpression
                |    stringExpression operator=('=='| '!=') stringExpression
@@ -77,11 +89,28 @@ comparisonOperator:   EQUAL
                     | LESS_EQUAL
                     | GREATER_EQUAL;
 
-funcDecl: FUNC_INSTR (typeName | TYPE_VOID) IDENTIFIER LEFT_PAREN parameters? RIGHT_PAREN block;
+funcDecl
+    : FUNC_INSTR returnType IDENTIFIER LEFT_PAREN parameters? RIGHT_PAREN block
+    ;
 
-parameters: typeName IDENTIFIER (COMMA typeName IDENTIFIER)*;
+returnType
+    : typeName
+    | TYPE_VOID
+    ;
 
-returnDecl: RETURN_INSTR (expression)? SEMICOLON;
+parameters
+    : parameter (COMMA parameter)*
+    ;
+
+parameter
+    : typeName IDENTIFIER
+    ;
+
+returnDecl
+    : RETURN_INSTR expression? SEMICOLON
+    ;
+
+
 
 numExpression: numExpression (PLUS|MINUS) term | term;
 
@@ -128,7 +157,8 @@ whileLoop:
 
 displayDecl: DISPLAY_INSTR LEFT_PAREN expression RIGHT_PAREN SEMICOLON;
 
-plotDecl: PLOT_INSTR LEFT_PAREN (IDENTIFIER | matrixExpression) COMMA IDENTIFIER RIGHT_PAREN SEMICOLON;
+plotDecl: PLOT_INSTR LEFT_PAREN (IDENTIFIER | matrixExpression) COMMA (IDENTIFIER | STRING) RIGHT_PAREN SEMICOLON;
+
 
 // ----------- Data Types ------------------
 TYPE_STRING     : 'string';
@@ -197,6 +227,8 @@ SIN_FUNC        : 'sin';
 COS_FUNC        : 'cos';
 TAN_FUNC        : 'tan';
 CTAN_FUNC       : 'ctan';
+MATRIX_FROM_LOOP_FUNC : 'matrix_from_loop';
+VSTACK_FUNC : 'vstack';
 
 // -------------- Else -----------------
 

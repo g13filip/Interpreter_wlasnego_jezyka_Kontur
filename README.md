@@ -140,13 +140,15 @@ Przykładowy kod źródłowy języka znajduję się [tutaj](Gramatyka/plik.txt);
 
 ### Funkcje wbudowane
 
-| Token        | Opis        | Przykład |
-|--------------|-------------|----------|
-| `SIN_FUNC`   | sinus       | `sin()`  |
-| `COS_FUNC`   | cosinus     | `cos()`  |
-| `TAN_FUNC`   | tangens     | `tan()`  |
-| `CTAN_FUNC`  | kotangens   | `ctan()` |
-| `POWER_FUNC` | potęgowanie | `pow()`  |
+| Token        | Opis              | Przykład |
+|--------------|-------------------|----------|
+| `SIN_FUNC`   | sinus             | `sin()`  |
+| `COS_FUNC`   | cosinus           | `cos()`  |
+| `TAN_FUNC`   | tangens           | `tan()`  |
+| `CTAN_FUNC`  | kotangens         | `ctan()` |
+| `POWER_FUNC` | potęgowanie       | `pow()`  |
+| `MATRIX_FROM_LOOP_FUNC` | tworzenie macierzy| `matrix_from_loop()`  |
+| `VSTACK_FUNC` | łączenie macierzy | `vstack()`  |
 
 
 
@@ -156,7 +158,7 @@ Przykładowy kod źródłowy języka znajduję się [tutaj](Gramatyka/plik.txt);
 |--------------|-------------------------------------|--------------------|
 | `IDENTIFIER` | nazwa zmiennej lub funkcji          | `x`, `suma`        |
 | `COMMENT`    | komentarz                           | `// komentarz`     |
-| `WHITE_SPACE`| biały znak                          | spacja, tab, enter |
+| `WHITE_SPACE`| biały znak                          | `spacja`, `tab`, `enter` |
 
 ---
 
