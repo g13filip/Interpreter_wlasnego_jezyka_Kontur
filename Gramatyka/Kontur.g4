@@ -98,7 +98,7 @@ typeName: TYPE_STRING | TYPE_INT | TYPE_FLOAT | TYPE_BOOL | TYPE_MATRIX;
 
 operation : (IDENTIFIER (INCREMENT | DECREMENT)) | funcCall;
 
-reassignment: IDENTIFIER ((ADD_TO STRING | ADD_TO numExpression)
+reassignment: IDENTIFIER ((ADD_TO STRING| ADD_TO numExpression)
                           | SUBTRACT_FROM numExpression
                           | DIVIDE_FROM numExpression
                           | TIMES numExpression);
@@ -121,7 +121,7 @@ loopStatement: forLoop | whileLoop;
 forLoop: FOR_INSTR LEFT_PAREN (IDENTIFIER| assignment)? SEMICOLON
                                boolExpression SEMICOLON
                                (assignment | reassignment | operation) RIGHT_PAREN
-                               (LEFT_BRACE loopStatements+ RIGHT_BRACE| statement);
+                               (LEFT_BRACE loopStatements+ RIGHT_BRACE| loopStatements);
 whileLoop:
            WHILE_INSTR LEFT_PAREN boolExpression RIGHT_PAREN
            (LEFT_BRACE loopStatements+ RIGHT_BRACE | statement);

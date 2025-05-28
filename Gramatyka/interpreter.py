@@ -2,6 +2,7 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 import math
+from antlr4.tree.Tree import TerminalNode
 
 from .KonturVisitor import KonturVisitor
 from .KonturParser import KonturParser
@@ -16,27 +17,83 @@ class KonturInterpreter(KonturVisitor):
             self.visit(stmt)
 
     def visitAssignment(self, ctx: KonturParser.AssignmentContext):
-        print(ctx.expression().numExpression())
         name = ctx.IDENTIFIER().getText()
+        line_number = ctx.start.line
+
+
+        explicit_type = ctx.typeName().getText() if ctx.typeName() else None
         value = self.visit(ctx.expression()) if ctx.expression() else None
-        var_type = ctx.typeName().getText() if ctx.typeName() else self._infer_type(value)
+
+        type_mapping = {
+            "int": int,
+            "float": float,
+            "string": str,
+            "matrix": np.ndarray
+        }
+
+        if not explicit_type and name not in self.variables:
+            raise NameError(f"Line {line_number}: Variable '{name}' does not exist. ")
+
+        if explicit_type and not isinstance(value, type_mapping.get(explicit_type)):
+            raise TypeError(f"Line {line_number}: Wrong type of value for {explicit_type}.")
+        if not explicit_type and not isinstance(value, type_mapping.get(self.variables[name]["type"])):
+            raise TypeError(f"Line {line_number}: Wrong type of value for {name}.")
+
+
+        var_type = explicit_type if explicit_type else self.variables[name]["type"]
         value = self._cast_value(value, var_type)
+
         self.variables[name] = {"type": var_type, "value": value}
 
     def visitReassignment(self, ctx: KonturParser.ReassignmentContext):
         name = ctx.IDENTIFIER().getText()
         op = ctx.getChild(1).getText()
         value = self.visit(ctx.getChild(2))
-        if name in self.variables:
-            old = self.variables[name]["value"]
-            if op == "+=":
-                self.variables[name]["value"] = old + value
-            elif op == "-=":
-                self.variables[name]["value"] = old - value
-            elif op == "*=":
-                self.variables[name]["value"] = old * value
-            elif op == "/=":
-                self.variables[name]["value"] = old / value
+        line_number = ctx.start.line
+
+        old_value = self.variables[name]["value"]
+        old_type = self.variables[name]["type"]
+
+        if name not in self.variables:
+            raise NameError(f"Line {line_number}: Variable '{name}' not defined")
+
+        if op == "+=":
+            if isinstance(old_value, str) and isinstance(value, str):
+                self.variables[name]["value"] = old_value + value
+            elif isinstance(old_value, (int, float)) and isinstance(value, (int, float)):
+                self.variables[name]["value"] = old_value + value
+            else:
+                raise TypeError(
+                    f"Line {line_number}: Operator '+=' can only be used on two ints/float or two strings. "
+                )
+        elif op in ("-=", "*=", "/="):
+            if not (isinstance(old_value, (int, float)) and not (isinstance(value, (int, float)))):
+                raise TypeError(
+                    f"Line {line_number}: Operator '{op}' can only be used on numeric types (int/float). "
+                )
+
+        if op == "-=":
+            self.variables[name]["value"] = old_value - value
+        elif op == "*=":
+            self.variables[name]["value"] = old_value * value
+        elif op == "/=":
+            if value == 0:
+                raise ValueError(f"Line {line_number}: Division by zero")
+            self.variables[name]["value"] = old_value / value
+
+        if isinstance(self.variables[name]["value"], float):
+            self.variables[name]["type"] = "float"
+
+    def visitOperation(self, ctx:KonturParser.OperationContext):
+        name = ctx.IDENTIFIER().getText()
+        op = ctx.getChild(1).getText()
+        if self.variables[name]["type"] != "int":
+            raise TypeError("Line " + str(ctx.start.line) + ": Increment and Decrement can be only done on type int")
+
+        if op == "++":
+            self.variables[name]["value"] += 1
+        elif op == "--":
+            self.variables[name]["value"] -= 1
 
     def visitDisplayDecl(self, ctx: KonturParser.DisplayDeclContext):
         value = self.visit(ctx.expression())
@@ -241,35 +298,48 @@ class KonturInterpreter(KonturVisitor):
 
         while self.visit(ctx.boolExpression()):
             if ctx.statement():
-                self.visit(ctx.statement())
+                self.visit(ctx.loopStatement())
             else:
                 for stmt in ctx.loopStatements():
                     self.visit(stmt)
 
     def visitForLoop(self, ctx: KonturParser.ForLoopContext):
+
         if ctx.assignment():
             self.visit(ctx.assignment())
 
-        if ctx.statement():
-            while self.visit(ctx.boolExpression()):
+        while self.visit(ctx.boolExpression()):
+            if ctx.statement():
                 self.visit(ctx.statement())
-                if ctx.assignment():
-                    self.visit(ctx.assignment())
-                elif ctx.reassignment():
-                    self.visit(ctx.reassignment())
-                elif ctx.operation():
-                    self.visit(ctx.operation())
-        else:
-            body = ctx.getChild(8)  # { ... }
-            while self.visit(ctx.boolExpression()):
-                for child in body.children[1:-1]:
-                    self.visit(child)
-                if ctx.assignment():
-                    self.visit(ctx.assignment())
-                elif ctx.reassignment():
-                    self.visit(ctx.reassignment())
-                elif ctx.operation():
-                    self.visit(ctx.operation())
+            else:
+                if ctx.loopStatements():
+                    for stmt in ctx.loopStatements():
+                        self.visit(stmt)
+            if ctx.reassignment():
+                self.visit(ctx.reassignment())
+            elif ctx.operation():
+                self.visit(ctx.operation())
+
+        # if ctx.statement():
+        #     while self.visit(ctx.boolExpression()):
+        #         self.visit(ctx.statement())
+        #         if ctx.assignment():
+        #             self.visit(ctx.assignment())
+        #         elif ctx.reassignment():
+        #             self.visit(ctx.reassignment())
+        #         elif ctx.operation():
+        #             self.visit(ctx.operation())
+        # else:
+        #     body = ctx.getChild(8)  # { ... }
+        #     while self.visit(ctx.boolExpression()):
+        #         for child in body.children[1:-1]:
+        #             self.visit(child)
+        #         if ctx.assignment():
+        #             self.visit(ctx.assignment())
+        #         elif ctx.reassignment():
+        #             self.visit(ctx.reassignment())
+        #         elif ctx.operation():
+        #             self.visit(ctx.operation())
 
     def visitPlotDecl(self, ctx: KonturParser.PlotDeclContext):
         # Pobierz dane do wykresu
