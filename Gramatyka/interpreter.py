@@ -109,8 +109,10 @@ class KonturInterpreter(KonturVisitor):
             self.variables[name]["value"] -= 1
 
     def visitDisplayDecl(self, ctx: KonturParser.DisplayDeclContext):
+        print("display")
         value = self.visit(ctx.expression())
-        self.output_func.write(value)
+        print("value", value)
+        self.output_func(value)
 
     def visitExpression(self, ctx: KonturParser.ExpressionContext):
         if ctx.NUMBER():
@@ -136,7 +138,11 @@ class KonturInterpreter(KonturVisitor):
         return None
 
     def visitNumExpression(self, ctx: KonturParser.NumExpressionContext):
-        if ctx.getChildCount() == 3:
+        print("jpjp")
+        if ctx.MINUS() and ctx.getChildCount() == 2:
+            value = self.visit(ctx.getChild(1))
+            return -value
+        elif ctx.getChildCount() == 3:
             left = self.visit(ctx.getChild(0))
             right = self.visit(ctx.getChild(2))
             op = ctx.getChild(1).getText()
@@ -168,6 +174,7 @@ class KonturInterpreter(KonturVisitor):
         return self.visit(ctx.getChild(0))
 
     def visitFactor(self, ctx: KonturParser.FactorContext):
+        print("Factor")
         if ctx.NUMBER():
             text = ctx.NUMBER().getText()
             return float(text) if '.' in text else int(text)

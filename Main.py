@@ -10,6 +10,7 @@ from Gramatyka.KonturErrorListener import KonturErrorListener
 from Gramatyka.KonturLexer import KonturLexer
 from Gramatyka.KonturParser import KonturParser
 from Gramatyka.EvalListener import EvalListener
+from test import interpreter
 
 # def print_tree(node, parser, indent=0):
 #     prefix = "  " * indent
@@ -32,7 +33,6 @@ from Gramatyka.EvalListener import EvalListener
 #     print_tree(tree, parser)
 #
 #     return tree
-
 def print_tree(node, parser, indent=0):
     result = []
     prefix = "  " * indent

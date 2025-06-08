@@ -93,14 +93,14 @@ if st.button("Uruchom kod"):
         parser.addErrorListener(error_listener)
 
         tree = parser.program()
-
+        # print(tree.toStringTree(recog=parser))
         if error_listener.errors:
             st.subheader("Błędy:")
             for error in error_listener.errors:
                 st.error(error)
         else:
             st.subheader("Wynik programu:")
-            interpreter = KonturInterpreter(output_func=st)
+            interpreter = KonturInterpreter(output_func=st.write)
             interpreter.visit(tree)
             print(interpreter.variables)
 

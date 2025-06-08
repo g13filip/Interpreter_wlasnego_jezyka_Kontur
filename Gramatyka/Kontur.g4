@@ -3,15 +3,15 @@ grammar Kontur;
 program: statement* EOF;
 
 statement:
-    assignment SEMICOLON
-  | reassignment SEMICOLON
-  | indexedAssignment SEMICOLON
+    displayDecl
   | funcDecl
   | plotDecl
   | returnDecl
   | loopStatement
-  | displayDecl
   | ifStatement
+  | reassignment SEMICOLON
+  | indexedAssignment SEMICOLON
+  | assignment SEMICOLON
   | operation SEMICOLON;
 
 loopStatements:
@@ -112,7 +112,7 @@ returnDecl
 
 
 
-numExpression: numExpression (PLUS|MINUS) term | term;
+numExpression: MINUS numExpression| numExpression (PLUS|MINUS) term | term;
 
 term: term (MULTIPLY|DIVIDE|MODULO) factor
     | factor;
