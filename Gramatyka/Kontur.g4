@@ -23,7 +23,7 @@ loopStatements:
   | returnDecl
   | loopStatement
   | displayDecl
-  | loopIfStatement
+  | ifStatement
   | breakStatement
   | continueStatement;
 

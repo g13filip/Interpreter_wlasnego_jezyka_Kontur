@@ -80,7 +80,7 @@ def serializedATN():
         107,3,12,6,0,107,108,5,38,0,0,108,124,1,0,0,0,109,110,3,62,31,0,
         110,111,5,38,0,0,111,124,1,0,0,0,112,113,3,60,30,0,113,114,5,38,
         0,0,114,124,1,0,0,0,115,124,3,42,21,0,116,124,3,76,38,0,117,124,
-        3,50,25,0,118,124,3,68,34,0,119,124,3,74,37,0,120,124,3,66,33,0,
+        3,50,25,0,118,124,3,68,34,0,119,124,3,74,37,0,120,124,3,64,32,0,
         121,124,3,6,3,0,122,124,3,8,4,0,123,106,1,0,0,0,123,109,1,0,0,0,
         123,112,1,0,0,0,123,115,1,0,0,0,123,116,1,0,0,0,123,117,1,0,0,0,
         123,118,1,0,0,0,123,119,1,0,0,0,123,120,1,0,0,0,123,121,1,0,0,0,
@@ -641,8 +641,8 @@ class KonturParser ( Parser ):
             return self.getTypedRuleContext(KonturParser.DisplayDeclContext,0)
 
 
-        def loopIfStatement(self):
-            return self.getTypedRuleContext(KonturParser.LoopIfStatementContext,0)
+        def ifStatement(self):
+            return self.getTypedRuleContext(KonturParser.IfStatementContext,0)
 
 
         def breakStatement(self):
@@ -738,7 +738,7 @@ class KonturParser ( Parser ):
             elif la_ == 9:
                 self.enterOuterAlt(localctx, 9)
                 self.state = 120
-                self.loopIfStatement()
+                self.ifStatement()
                 pass
 
             elif la_ == 10:
@@ -3558,53 +3558,52 @@ class KonturParser ( Parser ):
 
             self.state = 465
             self._errHandler.sync(self)
-            _alt = self._interp.adaptivePredict(self._input,45,self._ctx)
-            while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
-                if _alt==1:
-                    self.state = 448
-                    self.match(KonturParser.ELIF_INSTR)
-                    self.state = 449
-                    self.match(KonturParser.LEFT_PAREN)
-                    self.state = 450
-                    self.boolExpression(0)
-                    self.state = 451
-                    self.match(KonturParser.RIGHT_PAREN)
-                    self.state = 461
+            _la = self._input.LA(1)
+            while _la==42:
+                self.state = 448
+                self.match(KonturParser.ELIF_INSTR)
+                self.state = 449
+                self.match(KonturParser.LEFT_PAREN)
+                self.state = 450
+                self.boolExpression(0)
+                self.state = 451
+                self.match(KonturParser.RIGHT_PAREN)
+                self.state = 461
+                self._errHandler.sync(self)
+                token = self._input.LA(1)
+                if token in [36]:
+                    self.state = 452
+                    self.match(KonturParser.LEFT_BRACE)
+                    self.state = 454 
                     self._errHandler.sync(self)
-                    token = self._input.LA(1)
-                    if token in [36]:
-                        self.state = 452
-                        self.match(KonturParser.LEFT_BRACE)
-                        self.state = 454 
+                    _la = self._input.LA(1)
+                    while True:
+                        self.state = 453
+                        self.loopStatements()
+                        self.state = 456 
                         self._errHandler.sync(self)
                         _la = self._input.LA(1)
-                        while True:
-                            self.state = 453
-                            self.loopStatements()
-                            self.state = 456 
-                            self._errHandler.sync(self)
-                            _la = self._input.LA(1)
-                            if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & -8647481931086168002) != 0)):
-                                break
+                        if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & -8647481931086168002) != 0)):
+                            break
 
-                        self.state = 458
-                        self.match(KonturParser.RIGHT_BRACE)
-                        pass
-                    elif token in [1, 2, 3, 4, 5, 40, 43, 44, 47, 48, 50, 51, 52, 53, 54, 55, 56, 57, 58, 63]:
-                        self.state = 460
-                        self.statement()
-                        pass
-                    else:
-                        raise NoViableAltException(self)
-             
+                    self.state = 458
+                    self.match(KonturParser.RIGHT_BRACE)
+                    pass
+                elif token in [1, 2, 3, 4, 5, 40, 43, 44, 47, 48, 50, 51, 52, 53, 54, 55, 56, 57, 58, 63]:
+                    self.state = 460
+                    self.statement()
+                    pass
+                else:
+                    raise NoViableAltException(self)
+
                 self.state = 467
                 self._errHandler.sync(self)
-                _alt = self._interp.adaptivePredict(self._input,45,self._ctx)
+                _la = self._input.LA(1)
 
             self.state = 480
             self._errHandler.sync(self)
-            la_ = self._interp.adaptivePredict(self._input,48,self._ctx)
-            if la_ == 1:
+            _la = self._input.LA(1)
+            if _la==41:
                 self.state = 468
                 self.match(KonturParser.ELSE_INSTR)
                 self.state = 478
