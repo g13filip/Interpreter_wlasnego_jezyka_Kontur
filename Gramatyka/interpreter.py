@@ -15,10 +15,12 @@ class KonturInterpreter(KonturVisitor):
         self.variables = {}
         self.output_func = output_func
         self.functions = {}
+        self.results = []
 
     def visitProgram(self, ctx: KonturParser.ProgramContext):
         for stmt in ctx.statement():
             self.visit(stmt)
+        print(self.variables)
 
     def visitAssignment(self, ctx: KonturParser.AssignmentContext):
         name = ctx.IDENTIFIER().getText()
@@ -98,21 +100,25 @@ class KonturInterpreter(KonturVisitor):
             self.variables[name]["type"] = "float"
 
     def visitOperation(self, ctx:KonturParser.OperationContext):
-        name = ctx.IDENTIFIER().getText()
-        op = ctx.getChild(1).getText()
-        if self.variables[name]["type"] != "int":
-            raise TypeError("Line " + str(ctx.start.line) + ": Increment and Decrement can be only done on type int")
+        if ctx.IDENTIFIER():
+            name = ctx.IDENTIFIER.getText()
+            op = ctx.getChild(1).getText()
+            if self.variables[name]["type"] != "int":
+                raise TypeError("Line " + str(ctx.start.line) + ": Increment and Decrement can be only done on type int")
 
-        if op == "++":
-            self.variables[name]["value"] += 1
-        elif op == "--":
-            self.variables[name]["value"] -= 1
+            if op == "++":
+                self.variables[name]["value"] += 1
+            elif op == "--":
+                self.variables[name]["value"] -= 1
+        else:
+            return self.visit(ctx.funcCall())
 
     def visitDisplayDecl(self, ctx: KonturParser.DisplayDeclContext):
         print("display")
+
         value = self.visit(ctx.expression())
         print("value", value)
-        self.output_func(value)
+        self.results.append(value)
 
     def visitExpression(self, ctx: KonturParser.ExpressionContext):
         if ctx.NUMBER():
@@ -122,6 +128,7 @@ class KonturInterpreter(KonturVisitor):
             return ctx.STRING().getText().strip('"').strip("'")
         elif ctx.IDENTIFIER():
             name = ctx.IDENTIFIER().getText()
+            print(name)
             return self.variables.get(name, {}).get("value", f"<undef {name}>")
         elif ctx.numExpression():
             return self.visit(ctx.numExpression())
@@ -138,25 +145,30 @@ class KonturInterpreter(KonturVisitor):
         return None
 
     def visitNumExpression(self, ctx: KonturParser.NumExpressionContext):
-        print("jpjp")
         if ctx.MINUS() and ctx.getChildCount() == 2:
             value = self.visit(ctx.getChild(1))
             return -value
         elif ctx.getChildCount() == 3:
             left = self.visit(ctx.getChild(0))
-            right = self.visit(ctx.getChild(2))
             op = ctx.getChild(1).getText()
+            right = self.visit(ctx.getChild(2))
+            print(left, op, right)
+
+
             if op == '+':
                 return left + right
             elif op == '-':
                 return left - right
-        return self.visit(ctx.getChild(0))
+        return self.visit(ctx.term())
 
     def visitTerm(self, ctx: KonturParser.TermContext):
         if ctx.getChildCount() == 3:
             left = self.visit(ctx.getChild(0))
-            right = self.visit(ctx.getChild(2))
             op = ctx.getChild(1).getText()
+            right = self.visit(ctx.getChild(2))
+
+
+            print(f"DEBUG: In visitTerm, left={left} (type={type(left)}), right={right} (type={type(right)}), op={op}")
 
             if op == '*':
                 if isinstance(left, np.ndarray) and isinstance(right, np.ndarray):
@@ -171,19 +183,23 @@ class KonturInterpreter(KonturVisitor):
             elif op == '%':
                 return left % right
 
-        return self.visit(ctx.getChild(0))
+        return self.visit(ctx.factor())
 
     def visitFactor(self, ctx: KonturParser.FactorContext):
-        print("Factor")
         if ctx.NUMBER():
             text = ctx.NUMBER().getText()
             return float(text) if '.' in text else int(text)
         elif ctx.IDENTIFIER():
-            return self.variables.get(ctx.IDENTIFIER().getText(), {}).get("value", 0)
+            value = self.variables.get(ctx.IDENTIFIER().getText(), {}).get("value")
+            return value
+            raise TypeError(
+                f"Line {ctx.start.line}: Variable '{ctx.IDENTIFIER().getText()}' is not a number or is undefined.")
         elif ctx.LEFT_PAREN():
             return self.visit(ctx.numExpression())
         elif ctx.indexedVar():
             return self.visit(ctx.indexedVar())
+        elif ctx.operation():
+            return self.visit(ctx.operation())
         return 0
 
     def visitStringExpression(self, ctx: KonturParser.StringExpressionContext):
@@ -402,35 +418,99 @@ class KonturInterpreter(KonturVisitor):
     def visitContinueStatement(self, ctx):
         raise ContinueException()
 
+    # def visitPlotDecl(self, ctx: KonturParser.PlotDeclContext):
+    #     try:
+    #         # Argument 1: macierz danych
+    #         if ctx.IDENTIFIER(0):
+    #             var_name = ctx.IDENTIFIER(0).getText()
+    #             matrix_data = self.variables.get(var_name, {})
+    #             matrix = matrix_data.get("value")
+    #             if matrix is None:
+    #                 self.output_func(f"Error: Variable '{var_name}' not found")
+    #                 return
+    #         else:
+    #             matrix = self.visit(ctx.matrixExpression())
+    #
+    #         # Argument 2: tytuł wykresu
+    #         title_node = ctx.getChild(4)  # 5. dziecko: IDENTIFIER lub STRING
+    #         title = "Plot"
+    #         if isinstance(title_node, TerminalNode) and title_node.getSymbol().type == KonturParser.STRING:
+    #             title = title_node.getText().strip('"').strip("'")
+    #         else:
+    #             title_var = title_node.getText()
+    #             title_data = self.variables.get(title_var, {})
+    #             title = str(title_data.get("value", title_var))
+    #
+    #         if not isinstance(matrix, np.ndarray):
+    #             matrix = np.array(matrix)
+    #         if matrix.ndim == 2 and matrix.shape[0] == 1:
+    #             matrix = matrix.flatten()
+    #
+    #         # Generowanie wykresu
+    #         if matrix.ndim == 1:
+    #             x_values = np.arange(1, len(matrix) + 1)
+    #             fig = px.line(x=x_values, y=matrix, title=title, labels={'x': 'Index', 'y': 'Value'})
+    #         elif matrix.shape[0] == 2:
+    #             fig = px.line(x=matrix[0], y=matrix[1], title=title, labels={'x': 'X', 'y': 'Y'})
+    #         elif matrix.shape[0] == 3:
+    #             fig = go.Figure(data=[go.Scatter3d(
+    #                 x=matrix[0], y=matrix[1], z=matrix[2],
+    #                 mode='lines+markers', marker=dict(size=4), line=dict(width=2)
+    #             )])
+    #             fig.update_layout(title=title, scene=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='Z'))
+    #         elif matrix.shape[1] == 2:
+    #             fig = px.scatter(x=matrix[:, 0], y=matrix[:, 1], title=title)
+    #         elif matrix.shape[1] == 3:
+    #             fig = px.scatter_3d(x=matrix[:, 0], y=matrix[:, 1], z=matrix[:, 2], title=title)
+    #         else:
+    #             self.output_func("Error: Unsupported matrix format. Expected: 1D, 2xN, 3xN, Nx2 or Nx3 matrix")
+    #             return
+    #
+    #         # Renderowanie
+    #         if hasattr(self.output_func, 'plotly_chart'):
+    #             self.output_func.plotly_chart(fig)
+    #         else:
+    #             self.output_func(fig.to_html(include_plotlyjs='cdn'))
+    #
+    #     except Exception as e:
+    #         self.output_func(f"Plot error: {str(e)}")
     def visitPlotDecl(self, ctx: KonturParser.PlotDeclContext):
         try:
-            # Argument 1: macierz danych
+            # --- Argument 1: Macierz danych (bezpieczny dostęp) ---
+            matrix = None
+            # Gramatyka pozwala na IDENTIFIER lub matrixExpression jako pierwszy argument.
+            # IDENTIFIER(0) odnosi się do pierwszego identyfikatora w regule.
             if ctx.IDENTIFIER(0):
                 var_name = ctx.IDENTIFIER(0).getText()
-                matrix_data = self.variables.get(var_name, {})
-                matrix = matrix_data.get("value")
-                if matrix is None:
-                    self.output_func.write(f"Error: Variable '{var_name}' not found")
+                matrix_data = self.variables.get(var_name)
+                if matrix_data is None:
+                    self.output_func(f"Error: Variable '{var_name}' not found")
                     return
-            else:
+                matrix = matrix_data.get("value")
+            elif ctx.matrixExpression():
                 matrix = self.visit(ctx.matrixExpression())
 
-            # Argument 2: tytuł wykresu
-            title_node = ctx.getChild(4)  # 5. dziecko: IDENTIFIER lub STRING
+            # --- Argument 2: Tytuł wykresu (bezpieczny dostęp) ---
             title = "Plot"
-            if isinstance(title_node, TerminalNode) and title_node.getSymbol().type == KonturParser.STRING:
-                title = title_node.getText().strip('"').strip("'")
-            else:
-                title_var = title_node.getText()
-                title_data = self.variables.get(title_var, {})
-                title = str(title_data.get("value", title_var))
+            # Sprawdzamy, czy drugim argumentem jest stała tekstowa (STRING)
+            if ctx.STRING():
+                title = ctx.STRING().getText().strip('"').strip("'")
+            # Jeśli nie, to musi to być drugi identyfikator w regule (IDENTIFIER(1))
+            elif ctx.IDENTIFIER(1):
+                title_var = ctx.IDENTIFIER(1).getText()
+                title_data = self.variables.get(title_var)
+                if title_data:
+                    title = str(title_data.get("value", title_var))
+                else:
+                    title = title_var  # Użyj nazwy zmiennej jako fallback
 
+            # --- Reszta logiki generowania wykresu (bez zmian) ---
             if not isinstance(matrix, np.ndarray):
                 matrix = np.array(matrix)
             if matrix.ndim == 2 and matrix.shape[0] == 1:
                 matrix = matrix.flatten()
 
-            # Generowanie wykresu
+            fig = None
             if matrix.ndim == 1:
                 x_values = np.arange(1, len(matrix) + 1)
                 fig = px.line(x=x_values, y=matrix, title=title, labels={'x': 'Index', 'y': 'Value'})
@@ -447,17 +527,15 @@ class KonturInterpreter(KonturVisitor):
             elif matrix.shape[1] == 3:
                 fig = px.scatter_3d(x=matrix[:, 0], y=matrix[:, 1], z=matrix[:, 2], title=title)
             else:
-                self.output_func.write("Error: Unsupported matrix format. Expected: 1D, 2xN, 3xN, Nx2 or Nx3 matrix")
-                return
+                raise TypeError("Error: Unsupported matrix format. Expected: 1D, 2xN, 3xN, Nx2 or Nx3 matrix")
 
-            # Renderowanie
-            if hasattr(self.output_func, 'plotly_chart'):
-                self.output_func.plotly_chart(fig)
-            else:
-                self.output_func.write(fig.to_html(include_plotlyjs='cdn'))
+
+
+            if fig:
+                self.results.append(fig)
 
         except Exception as e:
-            self.output_func.write(f"Plot error: {str(e)}")
+            raise TypeError(f"Plot error: {str(e)}")
 
     def visitFuncCall(self, ctx:KonturParser.FuncCallContext):
         if ctx.builtInFunctions():
@@ -593,13 +671,13 @@ class KonturInterpreter(KonturVisitor):
                     raise ValueError(f"Matrix dimension mismatch in vstack: {e}")
 
         except ValueError as ve:
-            self.output_func.write(f"Math error: {str(ve)}")
+            self.output_func(f"Math error: {str(ve)}")
             raise
         except TypeError as te:
-            self.output_func.write(f"Type error: {str(te)}")
+            self.output_func(f"Type error: {str(te)}")
             raise
         except Exception as e:
-            self.output_func.write(f"Error in built-in function: {str(e)}")
+            self.output_func(f"Error in built-in function: {str(e)}")
             raise
 
     def visitFuncDecl(self, ctx):
