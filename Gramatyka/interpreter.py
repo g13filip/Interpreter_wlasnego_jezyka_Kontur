@@ -10,12 +10,17 @@ from .KonturParser import KonturParser
 class BreakException(Exception): pass
 class ContinueException(Exception): pass
 
+class ReturnSignal(Exception):
+    def __init__(self, value):
+        self.value = value
+
 class KonturInterpreter(KonturVisitor):
     def __init__(self, output_func):
         self.variables = {}
         self.output_func = output_func
         self.functions = {}
         self.results = []
+        self.return_value = None
 
     def visitProgram(self, ctx: KonturParser.ProgramContext):
         for stmt in ctx.statement():
@@ -26,6 +31,8 @@ class KonturInterpreter(KonturVisitor):
         name = ctx.IDENTIFIER().getText()
         line_number = ctx.start.line
 
+        if name in self.functions:
+            raise Exception(f"Line {line_number}: '{name}' is a function and cannot be redefined as a variable.")
 
         explicit_type = ctx.typeName().getText() if ctx.typeName() else None
         value = self.visit(ctx.expression()) if ctx.expression() else None
@@ -38,7 +45,7 @@ class KonturInterpreter(KonturVisitor):
         }
 
         if not explicit_type and name not in self.variables:
-            raise NameError(f"Line {line_number}: Variable '{name}' does not exist. ")
+            raise NameError(f"Line {line_number}: Variable '{name}' does not exist.")
 
         target_type = type_mapping.get(explicit_type)
 
@@ -114,11 +121,9 @@ class KonturInterpreter(KonturVisitor):
             return self.visit(ctx.funcCall())
 
     def visitDisplayDecl(self, ctx: KonturParser.DisplayDeclContext):
-        print("display")
-
         value = self.visit(ctx.expression())
-        print("value", value)
         self.results.append(value)
+        return None
 
     def visitExpression(self, ctx: KonturParser.ExpressionContext):
         if ctx.NUMBER():
@@ -537,11 +542,63 @@ class KonturInterpreter(KonturVisitor):
         except Exception as e:
             raise TypeError(f"Plot error: {str(e)}")
 
-    def visitFuncCall(self, ctx:KonturParser.FuncCallContext):
+    def visitFuncCall(self, ctx: KonturParser.FuncCallContext):
+        # 1. Wbudowane funkcje
         if ctx.builtInFunctions():
             return self.visit(ctx.builtInFunctions())
 
+        # 2. Funkcja użytkownika
+        func_name = ctx.IDENTIFIER().getText()
 
+        if func_name not in self.functions:
+            raise Exception(f"Nieznana funkcja użytkownika: {func_name}")
+
+        func = self.functions[func_name]
+        param_list = func['params']  # lista (typ, nazwa)
+        body = func['body']
+
+        # 3. Argumenty wywołania
+        args = []
+        if ctx.expression():
+            for expr in ctx.expression():
+                args.append(self.visit(expr))
+
+        if len(args) != len(param_list):
+            raise Exception(f"Funkcja '{func_name}' oczekuje {len(param_list)} argumentów, otrzymano {len(args)}")
+
+        # 4. Zapisz poprzedni zakres zmiennych
+        previous_variables = self.variables.copy()
+
+        # 5. Nowy zakres lokalny funkcji
+        self.variables = {}
+        print(param_list, args)
+        for (expected_type, name), value in zip(param_list, args):
+            # (opcjonalnie) Sprawdź typ
+            if expected_type == "int" and not isinstance(value, int):
+                raise Exception(f"Argument '{name}' powinien być typu int, otrzymano {type(value).__name__}")
+            elif expected_type == "float" and not isinstance(value, float):
+                raise Exception(f"Argument '{name}' powinien być typu float, otrzymano {type(value).__name__}")
+            elif expected_type == "string" and not isinstance(value, str):
+                raise Exception(f"Argument '{name}' powinien być typu string, otrzymano {type(value).__name__}")
+            elif expected_type == "bool" and not isinstance(value, bool):
+                raise Exception(f"Argument '{name}' powinien być typu bool, otrzymano {type(value).__name__}")
+            # matrix: możesz użyć np. numpy.ndarray
+            elif expected_type == "matrix":
+                if not isinstance(value, np.ndarray):
+                    raise Exception(f"Argument '{name}' powinien być typu matrix, otrzymano {type(value).__name__}")
+
+            self.variables[name] = {"type": expected_type, "value": value}
+
+        try:
+            self.return_value = None  # reset przed wejściem
+            self.visit(body)
+        except ReturnSignal as rs:
+            result = rs.value
+        else:
+            result = self.return_value
+
+        self.variables = previous_variables
+        return result
 
     def visitBuiltInFunctions(self, ctx: KonturParser.BuiltInFunctionsContext):
         try:
@@ -681,18 +738,26 @@ class KonturInterpreter(KonturVisitor):
             raise
 
     def visitFuncDecl(self, ctx):
-        name = ctx.IDENTIFIER().getText()
-        return_type = ctx.typeName().getText() if ctx.typeName() else "void"
-        parameters = []
+        func_name = ctx.IDENTIFIER().getText()
+        return_type = ctx.returnType().getText()
 
+        # Parametry
+        param_list = []
         if ctx.parameters():
-            for i in range(len(ctx.parameters().IDENTIFIER())):
-                param_type = ctx.parameters().typeName(i).getText()
-                param_name = ctx.parameters().IDENTIFIER(i).getText()
-                parameters.append((param_type, param_name))
+            for param in ctx.parameters().parameter():
+                param_type = param.typeName().getText()
+                param_name = param.IDENTIFIER().getText()
+                param_list.append((param_type, param_name))
 
-        self.functions[name] = {
-            "return_type": return_type,
-            "parameters": parameters,
-            "block": ctx.block()
+        # Zapisz funkcję
+        self.functions[func_name] = {
+            'params': param_list,
+            'body': ctx.block(),
+            'return_type': return_type
         }
+
+        return None
+
+    def visitReturnDecl(self, ctx):
+        value = self.visit(ctx.expression()) if ctx.expression() else None
+        raise ReturnSignal(value)
