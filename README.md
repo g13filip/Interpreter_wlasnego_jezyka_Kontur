@@ -64,6 +64,23 @@ Przykładowy kod źródłowy języka znajduję się [tutaj](Gramatyka/plik.txt);
 
 ---
 
+### Wymagania
+
+Przed uruchomieniem aplikacji upewnij się, że masz zainstalowane biblioteki:
+
+```bash
+pip install streamlit
+pip install streamlit-ace
+pip install antlr4-python3-runtime
+pip install numpy
+```
+### Uruchomienie
+
+```bash
+streamlit run Main.py
+```
+---
+
 ## Tabela tokenów języka Kontur
 
 ### Typy danych i wartości logiczne
@@ -160,7 +177,6 @@ Przykładowy kod źródłowy języka znajduję się [tutaj](Gramatyka/plik.txt);
 | `COMMENT`    | komentarz                           | `// komentarz`     |
 | `WHITE_SPACE`| biały znak                          | `spacja`, `tab`, `enter` |
 
----
 
 
 

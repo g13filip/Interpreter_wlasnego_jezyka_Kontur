@@ -1,98 +1,132 @@
-from antlr4.CommonTokenStream import CommonTokenStream
-from antlr4.FileStream import FileStream
-from antlr4.InputStream import InputStream
-from antlr4.tree.Tree import TerminalNodeImpl, ParseTreeWalker
-import streamlit as st
-import matplotlib.pyplot as plt
-import numpy as np
+# import streamlit as st
+# from antlr4 import *
+# from antlr4.CommonTokenStream import CommonTokenStream
+# from antlr4.InputStream import InputStream
+# from streamlit_ace import st_ace
+#
+# from Gramatyka.KonturErrorListener import KonturErrorListener
+# from Gramatyka.KonturLexer import KonturLexer
+# from Gramatyka.KonturParser import KonturParser
+# from Gramatyka.interpreter import KonturInterpreter
+#
+#
+# st.title("Interpreter języka Kontur")
+#
+# code = st_ace(
+#     value="",
+#     placeholder="Wprowadź wyrażenie do obliczenia",
+#     language="text",
+#     theme="dracula",
+#     keybinding="vscode",
+#     font_size=14,
+#     tab_size=4,
+#     show_gutter=True,
+#     show_print_margin=True,
+#     wrap=False,
+#     auto_update=False,
+#     height="300px",
+#     key="ace-editor"
+# )
+#
+# if st.button("Uruchom kod"):
+#     if not code.strip():
+#         st.warning("Proszę wprowadzić wyrażenie")
+#     try:
+#         input_stream = InputStream(code)
+#         lexer = KonturLexer(input_stream)
+#         token_stream = CommonTokenStream(lexer)
+#         parser = KonturParser(token_stream)
+#
+#         lexer.removeErrorListeners()
+#         parser.removeErrorListeners()
+#
+#         error_listener = KonturErrorListener()
+#         lexer.addErrorListener(error_listener)
+#         parser.addErrorListener(error_listener)
+#
+#         tree = parser.program()
+#         # print(tree.toStringTree(recog=parser))
+#         if error_listener.errors:
+#             st.subheader("Błędy:")
+#             for error in error_listener.errors:
+#                 st.error(error)
+#         else:
+#             st.subheader("Wynik programu:")
+#             interpreter = KonturInterpreter(output_func=st.write)
+#             interpreter.visit(tree)
+#             print(interpreter.variables)
+#
+#     except Exception as e:
+#         st.error(f"Błąd: {e}")
+import sys
 
-from Gramatyka.KonturErrorListener import KonturErrorListener
+import streamlit as st
+import plotly.graph_objects as go  # ZMIANA: Potrzebujemy tego importu
+from antlr4.CommonTokenStream import CommonTokenStream
+from antlr4.InputStream import InputStream
 from Gramatyka.KonturLexer import KonturLexer
 from Gramatyka.KonturParser import KonturParser
-from Gramatyka.EvalListener import EvalListener
-from test import interpreter
+from Gramatyka.interpreter import KonturInterpreter
+from Gramatyka.KonturErrorListener import KonturErrorListener
+from streamlit_ace import st_ace
 
-# def print_tree(node, parser, indent=0):
-#     prefix = "  " * indent
-#     if isinstance(node, TerminalNodeImpl):
-#         print(f"{prefix}{node.getText()}")
-#     else:
-#         rule_name = parser.ruleNames[node.getRuleIndex()]
-#         print(f"{prefix}{rule_name}")
-#         for child in node.getChildren():
-#             print_tree(child, parser, indent + 3)
-#
-# def parse_kontur_file(input):
-#     # input_stream = FileStream(file_path)
-#     lexer = KonturLexer(input)
-#     stream = CommonTokenStream(lexer)
-#     parser = KonturParser(stream)
-#
-#     tree = parser.program()
-#
-#     print_tree(tree, parser)
-#
-#     return tree
-def print_tree(node, parser, indent=0):
-    result = []
-    prefix = "  " * indent
+st.title("Interpreter języka Kontur")
 
-    if isinstance(node, TerminalNodeImpl):
-        result.append(f"{prefix}{node.getText()}")
-    else:
-        rule_name = parser.ruleNames[node.getRuleIndex()]
-        result.append(f"{prefix}{rule_name}")
-        for child in node.getChildren():
-            result.append(print_tree(child, parser, indent + 1) + '\n')
+code = st_ace(
+    value="",
+    placeholder="Wprowadź wyrażenie do obliczenia",
+    language="text",
+    theme="dracula",
+    keybinding="vscode",
+    font_size=14,
+    tab_size=4,
+    show_gutter=True,
+    show_print_margin=True,
+    wrap=False,
+    auto_update=False,
+    height="300px",
+    key="ace-editor"
+)
 
-    return "".join(filter(None, result))
+if st.button("Uruchom kod"):
+    if not code.strip():
+        st.warning("Proszę wprowadzić wyrażenie")
+        st.stop()  # Zatrzymujemy wykonanie, jeśli nie ma kodu
+    flag = False
+    try:
+        input_stream = InputStream(code)
+        lexer = KonturLexer(input_stream)
+        token_stream = CommonTokenStream(lexer)
+        parser = KonturParser(token_stream)
 
+        lexer.removeErrorListeners()
+        parser.removeErrorListeners()
 
-def parse_kontur_file(input_text):
+        error_listener = KonturErrorListener()
+        lexer.addErrorListener(error_listener)
+        parser.addErrorListener(error_listener)
 
-    input_stream = InputStream(input_text)
-    lexer = KonturLexer(input_stream)
-    stream = CommonTokenStream(lexer)
-    parser = KonturParser(stream)
+        tree = parser.program()
 
-    lexer.removeErrorListeners()
-    parser.removeErrorListeners()
-
-    error_listener = KonturErrorListener()
-    lexer.addErrorListener(error_listener)
-    parser.addErrorListener(error_listener)
-
-    tree = parser.program()
-    tree_text = print_tree(tree, parser)
-    walker = ParseTreeWalker()
-    listener = EvalListener()
-
-    walker.walk(listener, tree)
-
-    return tree, tree_text, error_listener.errors, listener
-
-if __name__ == "__main__":
-
-    st.title("Interpreter języka Kontur")
-
-    expression = st.text_area("Wprowadź wyrażenie do obliczenia:","", height = 300)
-
-    if st.button("Analizuj"):
-        if not expression.strip():
-            st.warning("Proszę wprowadzić wyrażenie")
+        if error_listener.errors:
+            st.subheader("Błędy parsowania:")
+            for error in error_listener.errors:
+                st.error(error)
+            flag = True
         else:
-            try:
-                tree, tree_text, errors, listener = parse_kontur_file(expression)
+            interpreter = KonturInterpreter(output_func=st.write)
+            interpreter.visit(tree)
 
-                if errors:
-                    st.subheader("Błędy:")
-                    for error in errors:
-                        st.error(error)
-                else:
-                    st.subheader("Wynik \\ Drzewo składniowe:")
-                    output = "\n".join(listener.output)
-                    st.code(output, language='text')
-                    st.code(tree_text, language='text')
-
-            except Exception as e:
-                st.error(f"Krytyczny błąd przetwarzania: {str(e)}")
+    except Exception as e:
+        st.error(f"Błąd: {e}")
+    finally:
+        if not flag and interpreter:
+            if interpreter.results:
+                st.subheader("Wygenerowane wyniki:")
+                for result in interpreter.results:
+                    if isinstance(result, go.Figure):
+                        st.plotly_chart(result, use_container_width=True)
+                    else:
+                        st.write(result)
+            else:
+                st.info("Program wykonany pomyślnie, ale nie wygenerował żadnych graficznych wyników (plot/display).")
